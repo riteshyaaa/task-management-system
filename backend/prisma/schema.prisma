@@ -1,0 +1,912 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum RoleName {
+  ADMIN
+  MANAGER
+  MEMBER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+  CUSTOM_CRON
+}
+
+enum RecurrenceStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum InstanceStatus {
+  PENDING
+  GENERATED
+  SKIPPED
+  COMPLETED
+  CANCELLED
+}
+
+enum DayOfWeek {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum TransitionConditionType {
+  ROLE_CHECK
+  FIELD_VALUE
+  APPROVAL_COUNT
+  CUSTOM_SCRIPT
+  TIME_ELAPSED
+}
+
+enum HookEventType {
+  NOTIFY_ASSIGNEE
+  NOTIFY_CHANNEL
+  WEBHOOK
+  UPDATE_FIELD
+  CREATE_SUBTASK
+  CUSTOM_SCRIPT
+}
+
+enum AuditOperation {
+  CREATE
+  UPDATE
+  DELETE
+  ARCHIVE
+  RESTORE
+  TRANSITION
+  BULK_UPDATE
+  BULK_DELETE
+}
+
+enum RetentionAction {
+  DELETE
+  ARCHIVE
+  COMPRESS
+}
+
+enum ActivityType {
+  LOGIN
+  LOGOUT
+  TASK_VIEW
+  TASK_CREATE
+  TASK_UPDATE
+  TASK_COMPLETE
+  COMMENT
+  ATTACHMENT
+  SEARCH
+  REPORT_VIEW
+}
+
+enum MetricPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_UPDATED
+  TASK_COMMENTED
+  TASK_DUE_SOON
+  WORKFLOW_TRANSITION
+  SYSTEM_ALERT
+}
+
+enum RuleTriggerType {
+  TASK_CREATED
+  TASK_STATUS_CHANGED
+  DUE_DATE_APPROACHING
+  SCHEDULED_CRON
+  METRIC_THRESHOLD
+}
+
+enum RuleActionType {
+  CREATE_TASK
+  ASSIGN_TASK
+  UPDATE_FIELD
+  SEND_NOTIFICATION
+  TRIGGER_WEBHOOK
+}
+
+enum TeamRole {
+  OWNER
+  MAINTAINER
+  MEMBER
+}
+
+// ==========================================
+// 1. IDENTITY, ACCESS & TEAMS
+// ==========================================
+
+model User {
+  id                  String               @id @default(uuid()) @db.Uuid
+  email               String               @unique @db.VarChar(255)
+  passwordHash        String               @map("password_hash") @db.VarChar(255)
+  firstName           String               @map("first_name") @db.VarChar(100)
+  lastName            String               @map("last_name") @db.VarChar(100)
+  avatarUrl           String?              @map("avatar_url") @db.VarChar(512)
+  isActive            Boolean              @default(true) @map("is_active")
+  isDeleted           Boolean              @default(false) @map("is_deleted")
+  deletedAt           DateTime?            @map("deleted_at") @db.Timestamptz(6)
+  lastLoginAt         DateTime?            @map("last_login_at") @db.Timestamptz(6)
+  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  userRoles           UserRole[]
+  teamMembers         TeamMember[]
+  assignedTasks       Task[]               @relation("TaskAssignee")
+  reportedTasks       Task[]               @relation("TaskReporter")
+  taskComments        TaskComment[]
+  taskWatchers        TaskWatcher[]
+  refreshTokens       RefreshToken[]
+  passwordResets      PasswordReset[]
+  createdRules        RecurrenceRule[]     @relation("RecurrenceCreator")
+  exceptionOverrides  RecurrenceException[] @relation("ExceptionCreator")
+  workflowDefs        WorkflowDefinition[] @relation("WorkflowCreator")
+  workflowTransitions WorkflowTransitionHistory[] @relation("TransitionTriggeredBy")
+  auditLogs           AuditLog[]           @relation("AuditPerformer")
+  bulkAuditOps        AuditBulkOperation[] @relation("BulkAuditPerformer")
+  activityLogs        UserActivityLog[]
+  performanceMetrics  TeamPerformanceMetric[]
+  dashboardWidgets    DashboardWidget[]
+  loginStreak         UserLoginStreak?
+  notifications       Notification[]
+  automationRules     AutomationRule[]     @relation("RuleCreator")
+  taskTemplates       TaskTemplate[]       @relation("TemplateCreator")
+
+  @@index([email, isActive])
+  @@index([isDeleted])
+  @@map("users")
+}
+
+model Role {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        RoleName         @unique
+  description String?          @db.VarChar(255)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  userRoles   UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  slug        String           @unique @db.VarChar(100)
+  name        String           @db.VarChar(100)
+  module      String           @db.VarChar(50)
+  description String?          @db.VarChar(255)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  rolePermissions RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid()) @db.Uuid
+  roleId       String     @map("role_id") @db.Uuid
+  permissionId String     @map("permission_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash") @db.VarChar(255)
+  isRevoked Boolean  @default(false) @map("is_revoked")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  familyId  String   @map("family_id") @db.Uuid
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRevoked])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash") @db.VarChar(255)
+  isUsed    Boolean  @default(false) @map("is_used")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash, isUsed])
+  @@map("password_resets")
+}
+
+model Team {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String       @db.VarChar(100)
+  slug        String       @unique @db.VarChar(120)
+  description String?      @db.Text
+  isArchived  Boolean      @default(false) @map("is_archived")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  members         TeamMember[]
+  tasks           Task[]
+  workflows       WorkflowDefinition[]
+  labels          Label[]
+  automationRules AutomationRule[]
+  templates       TaskTemplate[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String    @id @default(uuid()) @db.Uuid
+  teamId    String    @map("team_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  role      TeamRole  @default(MEMBER)
+  joinedAt  DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
+
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+// ==========================================
+// 2. TASKS, LABELS, COMMENTS & WATCHERS
+// ==========================================
+
+model Task {
+  id             String        @id @default(uuid()) @db.Uuid
+  taskNumber     Int           @default(autoincrement()) @map("task_number")
+  title          String        @db.VarChar(255)
+  description    String?       @db.Text
+  status         TaskStatus    @default(TODO)
+  priority       TaskPriority  @default(MEDIUM)
+  dueDate        DateTime?     @map("due_date") @db.Timestamptz(6)
+  startDate      DateTime?     @map("start_date") @db.Timestamptz(6)
+  completedAt    DateTime?     @map("completed_at") @db.Timestamptz(6)
+  estimatedHours Decimal?      @map("estimated_hours") @db.Decimal(6, 2)
+  actualHours    Decimal?      @map("actual_hours") @db.Decimal(6, 2)
+  position       Int           @default(0)
+  isDeleted      Boolean       @default(false) @map("is_deleted")
+  deletedAt      DateTime?     @map("deleted_at") @db.Timestamptz(6)
+  version        Int           @default(1)
+  metadata       Json          @default("{}") @db.JsonB
+
+  // Foreign Keys
+  assigneeId     String?       @map("assignee_id") @db.Uuid
+  reporterId     String        @map("reporter_id") @db.Uuid
+  teamId         String        @map("team_id") @db.Uuid
+  parentTaskId   String?       @map("parent_task_id") @db.Uuid
+  templateId     String?       @map("template_id") @db.Uuid
+  recurrenceId   String?       @map("recurrence_id") @db.Uuid
+
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  assignee       User?         @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  reporter       User          @relation("TaskReporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  team           Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  parentTask     Task?         @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  subtasks       Task[]        @relation("SubTasks")
+  template       TaskTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  recurrenceRule RecurrenceRule? @relation("SpawnedRecurrence", fields: [recurrenceId], references: [id], onDelete: SetNull)
+
+  comments       TaskComment[]
+  taskLabels     TaskLabelMap[]
+  watchers       TaskWatcher[]
+  workflowAssignment TaskWorkflowAssignment?
+  workflowHistory WorkflowTransitionHistory[]
+  recurrenceInstances RecurringTaskInstance[]
+  masterForRules RecurrenceRule[] @relation("TemplateTask")
+
+  @@index([teamId, status, position])
+  @@index([assigneeId, status])
+  @@index([reporterId])
+  @@index([parentTaskId])
+  @@index([dueDate])
+  @@index([isDeleted])
+  @@map("tasks")
+}
+
+model Label {
+  id          String         @id @default(uuid()) @db.Uuid
+  teamId      String         @map("team_id") @db.Uuid
+  name        String         @db.VarChar(50)
+  color       String         @db.VarChar(7)
+  description String?        @db.VarChar(200)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  team        Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  tasks       TaskLabelMap[]
+
+  @@unique([teamId, name])
+  @@map("labels")
+}
+
+model TaskLabelMap {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @map("task_id") @db.Uuid
+  labelId   String   @map("label_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label     Label    @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, labelId])
+  @@map("task_labels")
+}
+
+model TaskComment {
+  id        String    @id @default(uuid()) @db.Uuid
+  taskId    String    @map("task_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  content   String    @db.Text
+  isEdited  Boolean   @default(false) @map("is_edited")
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
+  @@map("task_comments")
+}
+
+model TaskWatcher {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @map("task_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@map("task_watchers")
+}
+
+// ==========================================
+// 3. TASK TEMPLATES & AUTOMATION RULES
+// ==========================================
+
+model TaskTemplate {
+  id             String         @id @default(uuid()) @db.Uuid
+  teamId         String         @map("team_id") @db.Uuid
+  name           String         @db.VarChar(128)
+  description    String?        @db.Text
+  defaultTitle   String         @map("default_title") @db.VarChar(255)
+  defaultBody    String?        @map("default_body") @db.Text
+  defaultPriority TaskPriority  @default(MEDIUM) @map("default_priority")
+  estimatedHours Decimal?       @map("estimated_hours") @db.Decimal(6, 2)
+  variables      Json           @default("[]") @db.JsonB
+  createdById    String         @map("created_by") @db.Uuid
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  team           Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy      User           @relation("TemplateCreator", fields: [createdById], references: [id])
+  templateItems  TemplateItem[]
+  generatedTasks Task[]
+
+  @@unique([teamId, name])
+  @@map("task_templates")
+}
+
+model TemplateItem {
+  id             String       @id @default(uuid()) @db.Uuid
+  templateId     String       @map("template_id") @db.Uuid
+  title          String       @db.VarChar(255)
+  description    String?      @db.Text
+  position       Int          @default(0)
+  estimatedHours Decimal?     @map("estimated_hours") @db.Decimal(6, 2)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  template       TaskTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId, position])
+  @@map("template_items")
+}
+
+model AutomationRule {
+  id              String          @id @default(uuid()) @db.Uuid
+  teamId          String          @map("team_id") @db.Uuid
+  name            String          @db.VarChar(128)
+  description     String?         @db.Text
+  triggerType     RuleTriggerType @map("trigger_type")
+  triggerConfig   Json            @default("{}") @map("trigger_config") @db.JsonB
+  conditions      Json            @default("[]") @db.JsonB
+  actions         Json            @default("[]") @map("actions") @db.JsonB
+  isActive        Boolean         @default(true) @map("is_active")
+  executionCount  Int             @default(0) @map("execution_count")
+  lastTriggeredAt DateTime?       @map("last_triggered_at") @db.Timestamptz(6)
+  createdById     String          @map("created_by") @db.Uuid
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  team            Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy       User            @relation("RuleCreator", fields: [createdById], references: [id])
+
+  @@index([teamId, triggerType, isActive])
+  @@map("automation_rules")
+}
+
+// ==========================================
+// 4. RECURRING TASKS ENGINE
+// ==========================================
+
+model RecurrenceRule {
+  id                 String              @id @default(uuid()) @db.Uuid
+  taskTemplateId     String              @map("task_template_id") @db.Uuid
+  frequency          RecurrenceFrequency
+  interval           Int                 @default(1)
+  cronExpression     String?             @map("cron_expression") @db.VarChar(100)
+  timezone           String              @default("UTC") @db.VarChar(64)
+  startDate          DateTime            @map("start_date") @db.Timestamptz(6)
+  endDate            DateTime?           @map("end_date") @db.Timestamptz(6)
+  maxOccurrences     Int?                @map("max_occurrences")
+  occurrencesCreated Int                 @default(0) @map("occurrences_created")
+  status             RecurrenceStatus    @default(ACTIVE)
+  pausedAt           DateTime?           @map("paused_at") @db.Timestamptz(6)
+  nextOccurrence     DateTime?           @map("next_occurrence") @db.Timestamptz(6)
+  createdById        String              @map("created_by") @db.Uuid
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  templateTask       Task                @relation("TemplateTask", fields: [taskTemplateId], references: [id], onDelete: Cascade)
+  createdBy          User                @relation("RecurrenceCreator", fields: [createdById], references: [id])
+  weeklyDays         RecurrenceWeeklyDay[]
+  monthlyConfig      RecurrenceMonthlyConfig?
+  exceptions         RecurrenceException[]
+  instances          RecurringTaskInstance[]
+  spawnedTasks       Task[]              @relation("SpawnedRecurrence")
+
+  @@index([status, nextOccurrence])
+  @@index([taskTemplateId])
+  @@map("recurrence_rules")
+}
+
+model RecurrenceWeeklyDay {
+  id               String         @id @default(uuid()) @db.Uuid
+  recurrenceRuleId String         @map("recurrence_rule_id") @db.Uuid
+  dayOfWeek        DayOfWeek      @map("day_of_week")
+
+  rule             RecurrenceRule @relation(fields: [recurrenceRuleId], references: [id], onDelete: Cascade)
+
+  @@unique([recurrenceRuleId, dayOfWeek])
+  @@map("recurrence_weekly_days")
+}
+
+model RecurrenceMonthlyConfig {
+  id               String         @id @default(uuid()) @db.Uuid
+  recurrenceRuleId String         @unique @map("recurrence_rule_id") @db.Uuid
+  dayOfMonth       Int?           @map("day_of_month")
+  weekOrdinal      Int?           @map("week_ordinal")
+  dayOfWeek        DayOfWeek?     @map("day_of_week")
+
+  rule             RecurrenceRule @relation(fields: [recurrenceRuleId], references: [id], onDelete: Cascade)
+
+  @@map("recurrence_monthly_config")
+}
+
+model RecurrenceException {
+  id               String         @id @default(uuid()) @db.Uuid
+  recurrenceRuleId String         @map("recurrence_rule_id") @db.Uuid
+  exceptionDate    DateTime       @map("exception_date") @db.Date
+  reason           String?        @db.VarChar(255)
+  createdById      String?        @map("created_by") @db.Uuid
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  rule             RecurrenceRule @relation(fields: [recurrenceRuleId], references: [id], onDelete: Cascade)
+  createdBy        User?          @relation("ExceptionCreator", fields: [createdById], references: [id])
+
+  @@unique([recurrenceRuleId, exceptionDate])
+  @@map("recurrence_exceptions")
+}
+
+model RecurringTaskInstance {
+  id               String         @id @default(uuid()) @db.Uuid
+  recurrenceRuleId String         @map("recurrence_rule_id") @db.Uuid
+  scheduledFor     DateTime       @map("scheduled_for") @db.Timestamptz(6)
+  generatedTaskId  String?        @map("generated_task_id") @db.Uuid
+  status           InstanceStatus @default(PENDING)
+  errorMessage     String?        @map("error_message") @db.Text
+  generatedAt      DateTime?      @map("generated_at") @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  rule             RecurrenceRule @relation(fields: [recurrenceRuleId], references: [id], onDelete: Cascade)
+  generatedTask    Task?          @relation(fields: [generatedTaskId], references: [id], onDelete: SetNull)
+
+  @@index([recurrenceRuleId, scheduledFor])
+  @@map("recurring_task_instances")
+}
+
+// ==========================================
+// 5. WORKFLOW ENGINE & STATE MACHINE
+// ==========================================
+
+model WorkflowDefinition {
+  id             String               @id @default(uuid()) @db.Uuid
+  teamId         String               @map("team_id") @db.Uuid
+  name           String               @db.VarChar(128)
+  description    String?              @db.Text
+  version        Int                  @default(1)
+  status         WorkflowStatus       @default(DRAFT)
+  initialStateId String?              @map("initial_state_id") @db.Uuid
+  createdById    String               @map("created_by") @db.Uuid
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  team           Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy      User                 @relation("WorkflowCreator", fields: [createdById], references: [id])
+  states         WorkflowState[]
+  transitions    WorkflowTransition[]
+  assignments    TaskWorkflowAssignment[]
+
+  @@unique([teamId, name, version])
+  @@index([teamId, status])
+  @@map("workflow_definitions")
+}
+
+model WorkflowState {
+  id          String             @id @default(uuid()) @db.Uuid
+  workflowId  String             @map("workflow_id") @db.Uuid
+  name        String             @db.VarChar(64)
+  slug        String             @db.VarChar(64)
+  color       String?            @db.VarChar(7)
+  isInitial   Boolean            @default(false) @map("is_initial")
+  isTerminal  Boolean            @default(false) @map("is_terminal")
+  position    Int                @default(0)
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  workflow    WorkflowDefinition @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  outTransitions WorkflowTransition[] @relation("FromState")
+  inTransitions  WorkflowTransition[] @relation("ToState")
+  currentAssignments TaskWorkflowAssignment[]
+  fromHistory WorkflowTransitionHistory[] @relation("HistoryFromState")
+  toHistory   WorkflowTransitionHistory[] @relation("HistoryToState")
+
+  @@unique([workflowId, slug])
+  @@index([workflowId, position])
+  @@map("workflow_states")
+}
+
+model WorkflowTransition {
+  id          String             @id @default(uuid()) @db.Uuid
+  workflowId  String             @map("workflow_id") @db.Uuid
+  fromStateId String             @map("from_state_id") @db.Uuid
+  toStateId   String             @map("to_state_id") @db.Uuid
+  name        String?            @db.VarChar(128)
+  isAutomatic Boolean            @default(false) @map("is_automatic")
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  workflow    WorkflowDefinition @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  fromState   WorkflowState      @relation("FromState", fields: [fromStateId], references: [id], onDelete: Cascade)
+  toState     WorkflowState      @relation("ToState", fields: [toStateId], references: [id], onDelete: Cascade)
+  conditions  TransitionCondition[]
+  hooks       TransitionHook[]
+  history     WorkflowTransitionHistory[]
+
+  @@unique([workflowId, fromStateId, toStateId])
+  @@index([fromStateId])
+  @@map("workflow_transitions")
+}
+
+model TransitionCondition {
+  id            String                  @id @default(uuid()) @db.Uuid
+  transitionId  String                  @map("transition_id") @db.Uuid
+  conditionType TransitionConditionType @map("condition_type")
+  config        Json                    @default("{}") @db.JsonB
+  errorMessage  String?                 @map("error_message") @db.VarChar(255)
+  evalOrder     Int                     @default(0) @map("eval_order")
+  createdAt     DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  transition    WorkflowTransition      @relation(fields: [transitionId], references: [id], onDelete: Cascade)
+
+  @@index([transitionId, evalOrder])
+  @@map("transition_conditions")
+}
+
+model TransitionHook {
+  id           String             @id @default(uuid()) @db.Uuid
+  transitionId String             @map("transition_id") @db.Uuid
+  hookType     HookEventType      @map("hook_type")
+  config       Json               @default("{}") @db.JsonB
+  isAsync      Boolean            @default(true) @map("is_async")
+  execOrder    Int                @default(0) @map("exec_order")
+  isActive     Boolean            @default(true) @map("is_active")
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  transition   WorkflowTransition @relation(fields: [transitionId], references: [id], onDelete: Cascade)
+
+  @@index([transitionId, execOrder])
+  @@map("transition_hooks")
+}
+
+model TaskWorkflowAssignment {
+  id             String             @id @default(uuid()) @db.Uuid
+  taskId         String             @unique @map("task_id") @db.Uuid
+  workflowId     String             @map("workflow_id") @db.Uuid
+  currentStateId String             @map("current_state_id") @db.Uuid
+  enteredStateAt DateTime           @default(now()) @map("entered_state_at") @db.Timestamptz(6)
+  assignedAt     DateTime           @default(now()) @map("assigned_at") @db.Timestamptz(6)
+
+  task           Task               @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  workflow       WorkflowDefinition @relation(fields: [workflowId], references: [id], onDelete: Restrict)
+  currentState   WorkflowState      @relation(fields: [currentStateId], references: [id], onDelete: Restrict)
+
+  @@index([workflowId, currentStateId])
+  @@map("task_workflow_assignments")
+}
+
+model WorkflowTransitionHistory {
+  id                String              @id @default(uuid()) @db.Uuid
+  taskId            String              @map("task_id") @db.Uuid
+  transitionId      String?             @map("transition_id") @db.Uuid
+  fromStateId       String              @map("from_state_id") @db.Uuid
+  toStateId         String              @map("to_state_id") @db.Uuid
+  fromStateName     String              @map("from_state_name") @db.VarChar(64)
+  toStateName       String              @map("to_state_name") @db.VarChar(64)
+  triggeredById     String?             @map("triggered_by") @db.Uuid
+  comment           String?             @db.Text
+  durationInStateMs BigInt?             @map("duration_in_state_ms")
+  transitionedAt    DateTime            @default(now()) @map("transitioned_at") @db.Timestamptz(6)
+
+  task              Task                @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  transition        WorkflowTransition? @relation(fields: [transitionId], references: [id], onDelete: SetNull)
+  fromState         WorkflowState       @relation("HistoryFromState", fields: [fromStateId], references: [id])
+  toState           WorkflowState       @relation("HistoryToState", fields: [toStateId], references: [id])
+  triggeredBy       User?               @relation("TransitionTriggeredBy", fields: [triggeredById], references: [id])
+
+  @@index([taskId, transitionedAt(sort: Desc)])
+  @@index([triggeredById, transitionedAt(sort: Desc)])
+  @@map("workflow_transition_history")
+}
+
+// ==========================================
+// 6. AUDIT TRAIL SYSTEM
+// ==========================================
+
+model AuditLog {
+  id            BigInt              @id @default(autoincrement())
+  entityType    String              @map("entity_type") @db.VarChar(64)
+  entityId      String              @map("entity_id") @db.Uuid
+  operation     AuditOperation
+  oldValues     Json?               @map("old_values") @db.JsonB
+  newValues     Json?               @map("new_values") @db.JsonB
+  changedFields String[]            @map("changed_fields")
+  batchId       String?             @map("batch_id") @db.Uuid
+  performedById String?             @map("performed_by") @db.Uuid
+  ipAddress     String?             @map("ip_address") @db.VarChar(45)
+  userAgent     String?             @map("user_agent") @db.VarChar(512)
+  context       Json                @default("{}") @db.JsonB
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  performedBy   User?               @relation("AuditPerformer", fields: [performedById], references: [id], onDelete: SetNull)
+  batch         AuditBulkOperation? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt(sort: Desc)])
+  @@index([performedById, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@index([batchId])
+  @@index([operation, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+model AuditBulkOperation {
+  id             String         @id @default(uuid()) @db.Uuid
+  operation      AuditOperation
+  entityType     String         @map("entity_type") @db.VarChar(64)
+  affectedCount  Int            @map("affected_count")
+  filterCriteria Json           @default("{}") @map("filter_criteria") @db.JsonB
+  performedById  String         @map("performed_by") @db.Uuid
+  startedAt      DateTime       @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt    DateTime?      @map("completed_at") @db.Timestamptz(6)
+
+  performedBy    User           @relation("BulkAuditPerformer", fields: [performedById], references: [id])
+  auditLogs      AuditLog[]
+
+  @@index([performedById, startedAt(sort: Desc)])
+  @@map("audit_bulk_operations")
+}
+
+model AuditRetentionPolicy {
+  id             String          @id @default(uuid()) @db.Uuid
+  entityType     String          @unique @map("entity_type") @db.VarChar(64)
+  retentionDays  Int             @map("retention_days")
+  actionOnExpiry RetentionAction @default(ARCHIVE) @map("action_on_expiry")
+  archiveTable   String?         @map("archive_table") @db.VarChar(128)
+  isActive       Boolean         @default(true) @map("is_active")
+  lastAppliedAt  DateTime?       @map("last_applied_at") @db.Timestamptz(6)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("audit_retention_policies")
+}
+
+// ==========================================
+// 7. ENGAGEMENT, METRICS & NOTIFICATIONS
+// ==========================================
+
+model UserActivityLog {
+  id           BigInt       @id @default(autoincrement())
+  userId       String       @map("user_id") @db.Uuid
+  activityType ActivityType @map("activity_type")
+  entityType   String?      @map("entity_type") @db.VarChar(64)
+  entityId     String?      @map("entity_id") @db.Uuid
+  teamId       String?      @map("team_id") @db.Uuid
+  metadata     Json         @default("{}") @db.JsonB
+  sessionId    String?      @map("session_id") @db.Uuid
+  ipAddress    String?      @map("ip_address") @db.VarChar(45)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([activityType, createdAt(sort: Desc)])
+  @@index([entityType, entityId, createdAt(sort: Desc)])
+  @@map("user_activity_logs")
+}
+
+model TaskVelocityMetric {
+  id               String       @id @default(uuid()) @db.Uuid
+  teamId           String       @map("team_id") @db.Uuid
+  periodType       MetricPeriod @map("period_type")
+  periodStart      DateTime     @map("period_start") @db.Date
+  tasksCreated     Int          @default(0) @map("tasks_created")
+  tasksCompleted   Int          @default(0) @map("tasks_completed")
+  tasksOverdue     Int          @default(0) @map("tasks_overdue")
+  avgCycleTimeHrs  Decimal?     @map("avg_cycle_time_hours") @db.Decimal(10, 2)
+  p50CycleTimeHrs  Decimal?     @map("p50_cycle_time_hours") @db.Decimal(10, 2)
+  p90CycleTimeHrs  Decimal?     @map("p90_cycle_time_hours") @db.Decimal(10, 2)
+  throughputRate   Decimal?     @map("throughput_rate") @db.Decimal(8, 4)
+  computedAt       DateTime     @default(now()) @map("computed_at") @db.Timestamptz(6)
+
+  @@unique([teamId, periodType, periodStart])
+  @@index([teamId, periodStart(sort: Desc)])
+  @@map("task_velocity_metrics")
+}
+
+model TeamPerformanceMetric {
+  id                 String       @id @default(uuid()) @db.Uuid
+  userId             String       @map("user_id") @db.Uuid
+  teamId             String       @map("team_id") @db.Uuid
+  periodType         MetricPeriod @map("period_type")
+  periodStart        DateTime     @map("period_start") @db.Date
+  tasksAssigned      Int          @default(0) @map("tasks_assigned")
+  tasksCompleted     Int          @default(0) @map("tasks_completed")
+  tasksOverdue       Int          @default(0) @map("tasks_overdue")
+  avgCompletionHrs   Decimal?     @map("avg_completion_hours") @db.Decimal(10, 2)
+  onTimePercentage   Decimal?     @map("on_time_percentage") @db.Decimal(5, 2)
+  commentsPosted     Int          @default(0) @map("comments_posted")
+  statusTransitions  Int          @default(0) @map("status_transitions")
+  computedAt         DateTime     @default(now()) @map("computed_at") @db.Timestamptz(6)
+
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId, periodType, periodStart])
+  @@index([userId, periodStart(sort: Desc)])
+  @@index([teamId, periodType, periodStart(sort: Desc)])
+  @@map("team_performance_metrics")
+}
+
+model DashboardWidget {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  widgetType String   @map("widget_type") @db.VarChar(64)
+  title      String?  @db.VarChar(128)
+  config     Json     @default("{}") @db.JsonB
+  gridX      Int      @default(0) @map("grid_x")
+  gridY      Int      @default(0) @map("grid_y")
+  gridW      Int      @default(4) @map("grid_w")
+  gridH      Int      @default(3) @map("grid_h")
+  isVisible  Boolean  @default(true) @map("is_visible")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("dashboard_widgets")
+}
+
+model UserLoginStreak {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @unique @map("user_id") @db.Uuid
+  currentStreak    Int      @default(0) @map("current_streak_days")
+  longestStreak    Int      @default(0) @map("longest_streak_days")
+  lastActiveDate   DateTime @map("last_active_date") @db.Date
+  totalActiveDays  Int      @default(0) @map("total_active_days")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_login_streaks")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  type      NotificationType
+  title     String           @db.VarChar(255)
+  message   String           @db.Text
+  data      Json             @default("{}") @db.JsonB
+  isRead    Boolean          @default(false) @map("is_read")
+  readAt    DateTime?        @map("read_at") @db.Timestamptz(6)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@map("notifications")
+}

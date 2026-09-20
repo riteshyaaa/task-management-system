@@ -1,0 +1,1279 @@
+<title>Task Engine Schema</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --navy: #1B2A4A;
+    --accent: #3B82F6;
+    --accent-dim: #2563EB;
+    --emerald: #10B981;
+    --amber: #F59E0B;
+    --rose: #E11D48;
+    --surface: #F8FAFC;
+    --surface-alt: #F1F5F9;
+    --border: #E2E8F0;
+    --text: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #64748B;
+    --code-bg: #F1F5F9;
+    --card-bg: #FFFFFF;
+    --card-shadow: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+    --nav-bg: #FFFFFFEE;
+    --tag-pk: #DBEAFE;
+    --tag-pk-text: #1E40AF;
+    --tag-fk: #FEF3C7;
+    --tag-fk-text: #92400E;
+    --tag-nn: #FCE7F3;
+    --tag-nn-text: #9D174D;
+    --tag-uq: #D1FAE5;
+    --tag-uq-text: #065F46;
+    --tag-df: #F3E8FF;
+    --tag-df-text: #6B21A8;
+    --tag-idx: #E0E7FF;
+    --tag-idx-text: #3730A3;
+    --enum-bg: #FFF7ED;
+    --enum-border: #FDBA74;
+    --row-alt: #F8FAFC;
+    --section-line: #3B82F6;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --navy: #E2E8F0;
+      --accent: #60A5FA;
+      --accent-dim: #93C5FD;
+      --emerald: #34D399;
+      --amber: #FBBF24;
+      --rose: #FB7185;
+      --surface: #0F172A;
+      --surface-alt: #1E293B;
+      --border: #334155;
+      --text: #F1F5F9;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --code-bg: #1E293B;
+      --card-bg: #1E293B;
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+      --nav-bg: #1E293BEE;
+      --tag-pk: #1E3A5F;
+      --tag-pk-text: #93C5FD;
+      --tag-fk: #422006;
+      --tag-fk-text: #FCD34D;
+      --tag-nn: #4C0519;
+      --tag-nn-text: #FDA4AF;
+      --tag-uq: #064E3B;
+      --tag-uq-text: #6EE7B7;
+      --tag-df: #3B0764;
+      --tag-df-text: #C4B5FD;
+      --tag-idx: #1E1B4B;
+      --tag-idx-text: #A5B4FC;
+      --enum-bg: #1C1917;
+      --enum-border: #92400E;
+      --row-alt: #1E293B;
+      --section-line: #60A5FA;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --navy: #E2E8F0;
+    --accent: #60A5FA;
+    --accent-dim: #93C5FD;
+    --emerald: #34D399;
+    --amber: #FBBF24;
+    --rose: #FB7185;
+    --surface: #0F172A;
+    --surface-alt: #1E293B;
+    --border: #334155;
+    --text: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --code-bg: #1E293B;
+    --card-bg: #1E293B;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+    --nav-bg: #1E293BEE;
+    --tag-pk: #1E3A5F;
+    --tag-pk-text: #93C5FD;
+    --tag-fk: #422006;
+    --tag-fk-text: #FCD34D;
+    --tag-nn: #4C0519;
+    --tag-nn-text: #FDA4AF;
+    --tag-uq: #064E3B;
+    --tag-uq-text: #6EE7B7;
+    --tag-df: #3B0764;
+    --tag-df-text: #C4B5FD;
+    --tag-idx: #1E1B4B;
+    --tag-idx-text: #A5B4FC;
+    --enum-bg: #1C1917;
+    --enum-border: #92400E;
+    --row-alt: #1E293B;
+    --section-line: #60A5FA;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    padding-inline: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* --- Header --- */
+  .page-header {
+    padding: 3rem 0 2rem;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 2.5rem;
+  }
+  .page-header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--navy);
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .page-header .subtitle {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin: 0;
+  }
+  .header-meta {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+  .header-meta span {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+  }
+
+  /* --- Side Nav --- */
+  .layout {
+    display: flex;
+    gap: 2.5rem;
+    align-items: flex-start;
+  }
+  .side-nav {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    padding-top: 1rem;
+    min-width: 200px;
+    max-width: 220px;
+    flex-shrink: 0;
+  }
+  .side-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .side-nav a {
+    display: block;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .side-nav a:hover,
+  .side-nav a:focus-visible {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    outline: none;
+  }
+  .side-nav .nav-group {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 0.75rem 0.75rem 0.25rem;
+  }
+  .main-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  @media (max-width: 860px) {
+    .side-nav { display: none; }
+    .layout { display: block; }
+  }
+
+  /* --- Sections --- */
+  .schema-section {
+    margin-bottom: 3.5rem;
+  }
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--section-line);
+  }
+  .section-header h2 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .section-header .section-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    background: var(--tag-pk);
+    padding: 0.15em 0.5em;
+    border-radius: 3px;
+  }
+  .section-desc {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+    max-width: 65ch;
+  }
+
+  /* --- Enum blocks --- */
+  .enum-block {
+    background: var(--enum-bg);
+    border: 1px solid var(--enum-border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .enum-block h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 0.5rem;
+  }
+  .enum-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .enum-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    padding: 0.2em 0.6em;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-secondary);
+  }
+
+  /* --- Table blocks --- */
+  .table-block {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .table-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .table-title:hover { background: var(--surface-alt); }
+  .table-title h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+  }
+  .table-title .table-desc {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+  .table-title .chevron {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+  }
+  .table-block.collapsed .chevron { transform: rotate(-90deg); }
+  .table-block.collapsed .table-body { display: none; }
+
+  .table-body { overflow-x: auto; }
+  .schema-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  .schema-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-alt);
+    white-space: nowrap;
+  }
+  .schema-table td {
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .schema-table tr:last-child td { border-bottom: none; }
+  .schema-table tr:nth-child(even) td { background: var(--row-alt); }
+  .col-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .col-type {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--accent);
+    white-space: nowrap;
+    font-size: 0.78rem;
+  }
+  .col-desc {
+    color: var(--text-secondary);
+    max-width: 30ch;
+  }
+  .tag {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 500;
+    padding: 0.1em 0.45em;
+    border-radius: 3px;
+    margin-right: 0.25rem;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .tag-pk { background: var(--tag-pk); color: var(--tag-pk-text); }
+  .tag-fk { background: var(--tag-fk); color: var(--tag-fk-text); }
+  .tag-nn { background: var(--tag-nn); color: var(--tag-nn-text); }
+  .tag-uq { background: var(--tag-uq); color: var(--tag-uq-text); }
+  .tag-df { background: var(--tag-df); color: var(--tag-df-text); }
+  .tag-idx { background: var(--tag-idx); color: var(--tag-idx-text); }
+  .constraints-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+  }
+
+  /* --- Index / FK blocks --- */
+  .meta-row {
+    padding: 0.65rem 1.25rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface-alt);
+  }
+  .meta-row h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin: 0 0 0.35rem;
+  }
+  .meta-row code {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    padding: 0.15rem 0;
+    line-height: 1.5;
+  }
+
+  /* --- Footer --- */
+  .page-footer {
+    border-top: 1px solid var(--border);
+    padding: 1.5rem 0 2rem;
+    margin-top: 2rem;
+  }
+  .page-footer p {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  /* Focus */
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="page-header">
+  <h1>Task Management System &mdash; Advanced Schema</h1>
+  <p class="subtitle">Recurring tasks, workflow engine, audit trail, and engagement analytics. PostgreSQL 15+, all timestamps UTC with timezone context.</p>
+  <div class="header-meta">
+    <span>version 1.0.0</span>
+    <span>2026-09-20</span>
+    <span>39 tables &middot; 11 enums</span>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="side-nav" aria-label="Schema sections">
+    <ul>
+      <li class="nav-group">Domains</li>
+      <li><a href="#recurring">Recurring Tasks</a></li>
+      <li><a href="#workflow">Workflow Engine</a></li>
+      <li><a href="#audit">Audit System</a></li>
+      <li><a href="#analytics">Engagement &amp; Analytics</a></li>
+      <li class="nav-group">Reference</li>
+      <li><a href="#enums">All Enums</a></li>
+      <li><a href="#notes">Design Notes</a></li>
+    </ul>
+  </nav>
+
+  <main class="main-content">
+
+    <!-- ===== ENUMS ===== -->
+    <section class="schema-section" id="enums">
+      <div class="section-header">
+        <h2>Enum Definitions</h2>
+        <span class="section-tag">11 types</span>
+      </div>
+      <p class="section-desc">Custom PostgreSQL enum types shared across the schema. Each is defined once and referenced by column type.</p>
+
+      <div class="enum-block">
+        <h4>recurrence_frequency</h4>
+        <div class="enum-values">
+          <span class="enum-val">DAILY</span>
+          <span class="enum-val">WEEKLY</span>
+          <span class="enum-val">MONTHLY</span>
+          <span class="enum-val">YEARLY</span>
+          <span class="enum-val">CUSTOM_CRON</span>
+        </div>
+      </div>
+      <div class="enum-block">
+        <h4>recurrence_status</h4>
+        <div class="enum-values">
+          <span class="enum-val">ACTIVE</span>
+          <span class="enum-val">PAUSED</span>
+          <span class="enum-val">COMPLETED</span>
+          <span class="enum-val">CANCELLED</span>
+        </div>
+      </div>
+      <div class="enum-block">
+        <h4>instance_status</h4>
+        <div class="enum-values">
+          <span class="enum-val">PENDING</span>
+          <span class="enum-val">GENERATED</span>
+          <span class="enum-val">SKIPPED</span>
+          <span class="enum-val">COMPLETED</span>
+          <span class="enum-val">CANCELLED</span>
+        </div>
+      </div>
+      <div class="enum-block">
+        <h4>day_of_week</h4>
+        <div class="enum-values">
+          <span class="enum-val">MON</span>
+          <span class="enum-val">TUE</span>
+          <span class="enum-val">WED</span>
+          <span class="enum-val">THU</span>
+          <span class="enum-val">FRI</span>
+          <span class="enum-val">SAT</span>
+          <span class="enum-val">SUN</span>
+        </div>
+      </div>
+      <div class="enum-block">
+        <h4>workflow_status</h4>
+        <div class="enum-values">
+          <span class="enum-val">DRAFT</span>
+          <span class="enum-val">ACTIVE</span>
+          <span class="enum-val">ARCHIVED</span>
+        </div>
+      </div>
+      <div class="enum-block">
+        <h4>transition_condition_type</h4>
+        <div class="enum-values">
+          <span class="enum-val">ROLE_CHECK</span>
+          <span class="enum-val">FIELD_VALUE</span>
+          <span class="enum-val">APPROVAL_COUNT</span>
+          <span class="enum-val">CUSTOM_SCRIPT</span>
+          <span class="enum-val">TIME_ELAPSED</span>
+        </div>
+      </div>
+      <div class="enum-block">
+        <h4>hook_event_type</h4>
+        <div class="enum-values">
+          <span class="enum-val">NOTIFY_ASSIGNEE</span>
+          <span class="enum-val">NOTIFY_CHANNEL</span>
+          <span class="enum-val">WEBHOOK</span>
+          <span class="enum-val">UPDATE_FIELD</span>
+          <span class="enum-val">CREATE_SUBTASK</span>
+          <span class="enum-val">CUSTOM_SCRIPT</span>
+        </div>
+      </div>
+      <div class="enum-block">
+        <h4>audit_operation</h4>
+        <div class="enum-values">
+          <span class="enum-val">CREATE</span>
+          <span class="enum-val">UPDATE</span>
+          <span class="enum-val">DELETE</span>
+          <span class="enum-val">ARCHIVE</span>
+          <span class="enum-val">RESTORE</span>
+          <span class="enum-val">TRANSITION</span>
+          <span class="enum-val">BULK_UPDATE</span>
+          <span class="enum-val">BULK_DELETE</span>
+        </div>
+      </div>
+      <div class="enum-block">
+        <h4>retention_action</h4>
+        <div class="enum-values">
+          <span class="enum-val">DELETE</span>
+          <span class="enum-val">ARCHIVE</span>
+          <span class="enum-val">COMPRESS</span>
+        </div>
+      </div>
+      <div class="enum-block">
+        <h4>activity_type</h4>
+        <div class="enum-values">
+          <span class="enum-val">LOGIN</span>
+          <span class="enum-val">LOGOUT</span>
+          <span class="enum-val">TASK_VIEW</span>
+          <span class="enum-val">TASK_CREATE</span>
+          <span class="enum-val">TASK_UPDATE</span>
+          <span class="enum-val">TASK_COMPLETE</span>
+          <span class="enum-val">COMMENT</span>
+          <span class="enum-val">ATTACHMENT</span>
+          <span class="enum-val">SEARCH</span>
+          <span class="enum-val">REPORT_VIEW</span>
+        </div>
+      </div>
+      <div class="enum-block">
+        <h4>metric_period</h4>
+        <div class="enum-values">
+          <span class="enum-val">DAILY</span>
+          <span class="enum-val">WEEKLY</span>
+          <span class="enum-val">MONTHLY</span>
+          <span class="enum-val">QUARTERLY</span>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===== RECURRING TASKS ===== -->
+    <section class="schema-section" id="recurring">
+      <div class="section-header">
+        <h2>Recurring Tasks</h2>
+        <span class="section-tag">5 tables</span>
+      </div>
+      <p class="section-desc">Supports daily, weekly (with specific days), monthly (Nth day), yearly, and freeform cron patterns. Timezone-aware scheduling with instance tracking, pause/resume, end conditions, and exception dates.</p>
+
+      <!-- recurrence_rules -->
+      <div class="table-block" id="t-recurrence_rules">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>recurrence_rules</h3>
+          <span class="table-desc">Master recurrence definition attached to a task template</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc">Primary key</td></tr>
+              <tr><td class="col-name">task_template_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; tasks.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">The template task from which instances are generated</td></tr>
+              <tr><td class="col-name">frequency</td><td class="col-type">recurrence_frequency</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">DAILY, WEEKLY, MONTHLY, YEARLY, or CUSTOM_CRON</td></tr>
+              <tr><td class="col-name">interval</td><td class="col-type">SMALLINT</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 1</span></td><td class="col-desc">Every Nth period (e.g., every 2 weeks). CHECK (interval &gt; 0)</td></tr>
+              <tr><td class="col-name">cron_expression</td><td class="col-type">VARCHAR(100)</td><td class="constraints-cell"></td><td class="col-desc">5-field cron for CUSTOM_CRON frequency</td></tr>
+              <tr><td class="col-name">timezone</td><td class="col-type">VARCHAR(64)</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 'UTC'</span></td><td class="col-desc">IANA timezone for schedule evaluation (e.g., America/New_York)</td></tr>
+              <tr><td class="col-name">start_date</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">First possible occurrence</td></tr>
+              <tr><td class="col-name">end_date</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"></td><td class="col-desc">No instances generated after this date</td></tr>
+              <tr><td class="col-name">max_occurrences</td><td class="col-type">INTEGER</td><td class="constraints-cell"></td><td class="col-desc">Stop after N instances. CHECK (max_occurrences &gt; 0)</td></tr>
+              <tr><td class="col-name">occurrences_created</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc">Running count of generated instances</td></tr>
+              <tr><td class="col-name">status</td><td class="col-type">recurrence_status</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 'ACTIVE'</span></td><td class="col-desc">ACTIVE, PAUSED, COMPLETED, CANCELLED</td></tr>
+              <tr><td class="col-name">paused_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"></td><td class="col-desc">Timestamp when recurrence was paused</td></tr>
+              <tr><td class="col-name">next_occurrence</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"></td><td class="col-desc">Pre-computed next scheduled date for efficient polling</td></tr>
+              <tr><td class="col-name">created_by</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; users.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">User who created the rule</td></tr>
+              <tr><td class="col-name">created_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">updated_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>idx_recurrence_rules_status_next ON (status, next_occurrence) WHERE status = 'ACTIVE'</code>
+            <code>idx_recurrence_rules_template ON (task_template_id)</code>
+          </div>
+          <div class="meta-row">
+            <h4>Checks</h4>
+            <code>CHECK (interval &gt; 0)</code>
+            <code>CHECK (max_occurrences IS NULL OR max_occurrences &gt; 0)</code>
+            <code>CHECK (frequency = 'CUSTOM_CRON' OR cron_expression IS NULL)</code>
+            <code>CHECK (frequency != 'CUSTOM_CRON' OR cron_expression IS NOT NULL)</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- recurrence_weekly_days -->
+      <div class="table-block" id="t-recurrence_weekly_days">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>recurrence_weekly_days</h3>
+          <span class="table-desc">Which days of the week for WEEKLY frequency</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">recurrence_rule_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; recurrence_rules.id ON DELETE CASCADE</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">day_of_week</td><td class="col-type">day_of_week</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">MON through SUN</td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>UNIQUE (recurrence_rule_id, day_of_week)</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- recurrence_monthly_config -->
+      <div class="table-block" id="t-recurrence_monthly_config">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>recurrence_monthly_config</h3>
+          <span class="table-desc">Monthly recurrence on Nth day or Nth weekday</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">recurrence_rule_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; recurrence_rules.id ON DELETE CASCADE</span><span class="tag tag-nn">NOT NULL</span><span class="tag tag-uq">UNIQUE</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">day_of_month</td><td class="col-type">SMALLINT</td><td class="constraints-cell"></td><td class="col-desc">1-31; null if using weekday pattern. CHECK (1..31)</td></tr>
+              <tr><td class="col-name">week_ordinal</td><td class="col-type">SMALLINT</td><td class="constraints-cell"></td><td class="col-desc">1st, 2nd, 3rd, 4th, or -1 for last. CHECK (1..4 or -1)</td></tr>
+              <tr><td class="col-name">day_of_week</td><td class="col-type">day_of_week</td><td class="constraints-cell"></td><td class="col-desc">Used with week_ordinal (e.g., 2nd TUE)</td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Checks</h4>
+            <code>CHECK (day_of_month IS NOT NULL OR (week_ordinal IS NOT NULL AND day_of_week IS NOT NULL))</code>
+            <code>CHECK (day_of_month IS NULL OR (week_ordinal IS NULL AND day_of_week IS NULL))</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- recurrence_exceptions -->
+      <div class="table-block" id="t-recurrence_exceptions">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>recurrence_exceptions</h3>
+          <span class="table-desc">Specific dates excluded from recurrence generation</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">recurrence_rule_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; recurrence_rules.id ON DELETE CASCADE</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">exception_date</td><td class="col-type">DATE</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Date to skip</td></tr>
+              <tr><td class="col-name">reason</td><td class="col-type">VARCHAR(255)</td><td class="constraints-cell"></td><td class="col-desc">Optional note (e.g., "Holiday")</td></tr>
+              <tr><td class="col-name">created_by</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; users.id</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">created_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>UNIQUE (recurrence_rule_id, exception_date)</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- recurring_task_instances -->
+      <div class="table-block" id="t-recurring_task_instances">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>recurring_task_instances</h3>
+          <span class="table-desc">Each generated occurrence of a recurring task</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">recurrence_rule_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; recurrence_rules.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">task_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; tasks.id</span><span class="tag tag-uq">UNIQUE</span></td><td class="col-desc">The actual task created; null if SKIPPED or PENDING</td></tr>
+              <tr><td class="col-name">sequence_number</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Ordinal within the recurrence series</td></tr>
+              <tr><td class="col-name">scheduled_date</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">When this instance was due</td></tr>
+              <tr><td class="col-name">status</td><td class="col-type">instance_status</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 'PENDING'</span></td><td class="col-desc">PENDING, GENERATED, SKIPPED, COMPLETED, CANCELLED</td></tr>
+              <tr><td class="col-name">generated_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"></td><td class="col-desc">When the task was actually created</td></tr>
+              <tr><td class="col-name">completed_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"></td><td class="col-desc">When the instance was completed</td></tr>
+              <tr><td class="col-name">skip_reason</td><td class="col-type">VARCHAR(255)</td><td class="constraints-cell"></td><td class="col-desc">Reason if status = SKIPPED</td></tr>
+              <tr><td class="col-name">created_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>UNIQUE (recurrence_rule_id, sequence_number)</code>
+            <code>idx_recurring_instances_scheduled ON (scheduled_date) WHERE status = 'PENDING'</code>
+            <code>idx_recurring_instances_rule_status ON (recurrence_rule_id, status)</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===== WORKFLOW ENGINE ===== -->
+    <section class="schema-section" id="workflow">
+      <div class="section-header">
+        <h2>Workflow Engine</h2>
+        <span class="section-tag">7 tables</span>
+      </div>
+      <p class="section-desc">Configurable state machines per project. Each workflow defines states, allowed transitions with conditions and guard clauses, and hooks that fire on transition. Full history of every state change per task.</p>
+
+      <!-- workflow_definitions -->
+      <div class="table-block" id="t-workflow_definitions">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>workflow_definitions</h3>
+          <span class="table-desc">Top-level workflow definition, one per project workflow</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">project_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; projects.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Project this workflow belongs to</td></tr>
+              <tr><td class="col-name">name</td><td class="col-type">VARCHAR(128)</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Human-readable name (e.g., "Bug Fix Pipeline")</td></tr>
+              <tr><td class="col-name">description</td><td class="col-type">TEXT</td><td class="constraints-cell"></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">version</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 1</span></td><td class="col-desc">Incremented on structural change</td></tr>
+              <tr><td class="col-name">status</td><td class="col-type">workflow_status</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 'DRAFT'</span></td><td class="col-desc">DRAFT, ACTIVE, ARCHIVED</td></tr>
+              <tr><td class="col-name">initial_state_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; workflow_states.id</span></td><td class="col-desc">State assigned when a task enters this workflow</td></tr>
+              <tr><td class="col-name">created_by</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; users.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">created_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">updated_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>idx_workflow_def_project ON (project_id)</code>
+            <code>UNIQUE (project_id, name, version)</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- workflow_states -->
+      <div class="table-block" id="t-workflow_states">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>workflow_states</h3>
+          <span class="table-desc">States (nodes) in a workflow's state machine</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">workflow_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; workflow_definitions.id ON DELETE CASCADE</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">name</td><td class="col-type">VARCHAR(64)</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">State label (e.g., "In Review")</td></tr>
+              <tr><td class="col-name">slug</td><td class="col-type">VARCHAR(64)</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Machine-readable key (e.g., "in_review")</td></tr>
+              <tr><td class="col-name">color</td><td class="col-type">VARCHAR(7)</td><td class="constraints-cell"></td><td class="col-desc">Hex color for UI display</td></tr>
+              <tr><td class="col-name">is_initial</td><td class="col-type">BOOLEAN</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT false</span></td><td class="col-desc">Entry point state</td></tr>
+              <tr><td class="col-name">is_terminal</td><td class="col-type">BOOLEAN</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT false</span></td><td class="col-desc">Whether this state closes the task</td></tr>
+              <tr><td class="col-name">position</td><td class="col-type">SMALLINT</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc">Display order in board view</td></tr>
+              <tr><td class="col-name">created_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>UNIQUE (workflow_id, slug)</code>
+            <code>idx_workflow_states_workflow ON (workflow_id, position)</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- workflow_transitions -->
+      <div class="table-block" id="t-workflow_transitions">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>workflow_transitions</h3>
+          <span class="table-desc">Allowed edges between states</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">workflow_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; workflow_definitions.id ON DELETE CASCADE</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">from_state_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; workflow_states.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Source state</td></tr>
+              <tr><td class="col-name">to_state_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; workflow_states.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Destination state</td></tr>
+              <tr><td class="col-name">name</td><td class="col-type">VARCHAR(128)</td><td class="constraints-cell"></td><td class="col-desc">Transition label (e.g., "Approve")</td></tr>
+              <tr><td class="col-name">is_automatic</td><td class="col-type">BOOLEAN</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT false</span></td><td class="col-desc">If true, fires without user action when conditions met</td></tr>
+              <tr><td class="col-name">created_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>UNIQUE (workflow_id, from_state_id, to_state_id)</code>
+            <code>idx_workflow_transitions_from ON (from_state_id)</code>
+          </div>
+          <div class="meta-row">
+            <h4>Checks</h4>
+            <code>CHECK (from_state_id != to_state_id)</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- transition_conditions -->
+      <div class="table-block" id="t-transition_conditions">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>transition_conditions</h3>
+          <span class="table-desc">Guard clauses that must pass before a transition is allowed</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">transition_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; workflow_transitions.id ON DELETE CASCADE</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">condition_type</td><td class="col-type">transition_condition_type</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">ROLE_CHECK, FIELD_VALUE, APPROVAL_COUNT, CUSTOM_SCRIPT, TIME_ELAPSED</td></tr>
+              <tr><td class="col-name">config</td><td class="col-type">JSONB</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Type-specific config, e.g. {"role": "manager"} or {"field": "priority", "operator": "eq", "value": "HIGH"}</td></tr>
+              <tr><td class="col-name">error_message</td><td class="col-type">VARCHAR(255)</td><td class="constraints-cell"></td><td class="col-desc">Message shown when condition fails</td></tr>
+              <tr><td class="col-name">eval_order</td><td class="col-type">SMALLINT</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc">Evaluation order; all must pass (AND logic)</td></tr>
+              <tr><td class="col-name">created_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>idx_transition_conditions_transition ON (transition_id, eval_order)</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- transition_hooks -->
+      <div class="table-block" id="t-transition_hooks">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>transition_hooks</h3>
+          <span class="table-desc">Side-effects that fire after a transition succeeds</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">transition_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; workflow_transitions.id ON DELETE CASCADE</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">hook_type</td><td class="col-type">hook_event_type</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">NOTIFY_ASSIGNEE, NOTIFY_CHANNEL, WEBHOOK, UPDATE_FIELD, CREATE_SUBTASK, CUSTOM_SCRIPT</td></tr>
+              <tr><td class="col-name">config</td><td class="col-type">JSONB</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Type-specific payload, e.g. {"url": "https://...", "method": "POST"} or {"field": "assignee", "value": "{{reporter}}"}</td></tr>
+              <tr><td class="col-name">is_async</td><td class="col-type">BOOLEAN</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT true</span></td><td class="col-desc">If false, blocks transition until hook completes</td></tr>
+              <tr><td class="col-name">exec_order</td><td class="col-type">SMALLINT</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc">Execution order for synchronous hooks</td></tr>
+              <tr><td class="col-name">is_active</td><td class="col-type">BOOLEAN</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT true</span></td><td class="col-desc">Toggle without deleting</td></tr>
+              <tr><td class="col-name">created_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>idx_transition_hooks_transition ON (transition_id, exec_order)</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- task_workflow_assignments -->
+      <div class="table-block" id="t-task_workflow_assignments">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>task_workflow_assignments</h3>
+          <span class="table-desc">Links a task to its workflow and current state</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">task_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; tasks.id</span><span class="tag tag-nn">NOT NULL</span><span class="tag tag-uq">UNIQUE</span></td><td class="col-desc">One task, one active workflow</td></tr>
+              <tr><td class="col-name">workflow_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; workflow_definitions.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">current_state_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; workflow_states.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Task's current workflow state</td></tr>
+              <tr><td class="col-name">entered_state_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc">When the task entered its current state</td></tr>
+              <tr><td class="col-name">assigned_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>idx_task_wf_assign_state ON (workflow_id, current_state_id)</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- workflow_transition_history -->
+      <div class="table-block" id="t-workflow_transition_history">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>workflow_transition_history</h3>
+          <span class="table-desc">Immutable log of every state change per task</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">task_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; tasks.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">transition_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; workflow_transitions.id</span></td><td class="col-desc">Null if transition was removed after firing</td></tr>
+              <tr><td class="col-name">from_state_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; workflow_states.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">to_state_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; workflow_states.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">from_state_name</td><td class="col-type">VARCHAR(64)</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Denormalized snapshot in case state is later renamed</td></tr>
+              <tr><td class="col-name">to_state_name</td><td class="col-type">VARCHAR(64)</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Same as above</td></tr>
+              <tr><td class="col-name">triggered_by</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; users.id</span></td><td class="col-desc">Null for automatic transitions</td></tr>
+              <tr><td class="col-name">comment</td><td class="col-type">TEXT</td><td class="constraints-cell"></td><td class="col-desc">Optional note on transition</td></tr>
+              <tr><td class="col-name">duration_in_state_ms</td><td class="col-type">BIGINT</td><td class="constraints-cell"></td><td class="col-desc">Time spent in from_state, for cycle-time analytics</td></tr>
+              <tr><td class="col-name">transitioned_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>idx_wf_history_task ON (task_id, transitioned_at DESC)</code>
+            <code>idx_wf_history_triggered_by ON (triggered_by, transitioned_at DESC)</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===== AUDIT SYSTEM ===== -->
+    <section class="schema-section" id="audit">
+      <div class="section-header">
+        <h2>Audit System</h2>
+        <span class="section-tag">3 tables</span>
+      </div>
+      <p class="section-desc">Every data mutation is logged with old/new values as JSONB. Bulk operations are grouped under a batch ID. Retention policies control how long audit data lives before archival or deletion.</p>
+
+      <!-- audit_log -->
+      <div class="table-block" id="t-audit_log">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>audit_log</h3>
+          <span class="table-desc">Append-only log of every field-level change</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">BIGINT</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">GENERATED ALWAYS AS IDENTITY</span></td><td class="col-desc">Monotonic ID; BIGINT for volume</td></tr>
+              <tr><td class="col-name">entity_type</td><td class="col-type">VARCHAR(64)</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Table name (e.g., "tasks", "comments")</td></tr>
+              <tr><td class="col-name">entity_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">PK of the changed row</td></tr>
+              <tr><td class="col-name">operation</td><td class="col-type">audit_operation</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">CREATE, UPDATE, DELETE, ARCHIVE, RESTORE, TRANSITION, BULK_UPDATE, BULK_DELETE</td></tr>
+              <tr><td class="col-name">old_values</td><td class="col-type">JSONB</td><td class="constraints-cell"></td><td class="col-desc">Previous field values; null on CREATE</td></tr>
+              <tr><td class="col-name">new_values</td><td class="col-type">JSONB</td><td class="constraints-cell"></td><td class="col-desc">New field values; null on DELETE</td></tr>
+              <tr><td class="col-name">changed_fields</td><td class="col-type">TEXT[]</td><td class="constraints-cell"></td><td class="col-desc">Array of field names that changed (for fast filtering)</td></tr>
+              <tr><td class="col-name">batch_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; audit_bulk_operations.id</span></td><td class="col-desc">Groups rows from a single bulk action</td></tr>
+              <tr><td class="col-name">performed_by</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; users.id</span></td><td class="col-desc">Null for system-generated changes</td></tr>
+              <tr><td class="col-name">ip_address</td><td class="col-type">INET</td><td class="constraints-cell"></td><td class="col-desc">Client IP at time of change</td></tr>
+              <tr><td class="col-name">user_agent</td><td class="col-type">VARCHAR(512)</td><td class="constraints-cell"></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">context</td><td class="col-type">JSONB</td><td class="constraints-cell"></td><td class="col-desc">Extra metadata: request ID, API version, etc.</td></tr>
+              <tr><td class="col-name">created_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc">Immutable timestamp</td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>idx_audit_entity ON (entity_type, entity_id, created_at DESC)</code>
+            <code>idx_audit_performed_by ON (performed_by, created_at DESC) WHERE performed_by IS NOT NULL</code>
+            <code>idx_audit_created_at ON (created_at DESC)  -- range scans / retention</code>
+            <code>idx_audit_batch ON (batch_id) WHERE batch_id IS NOT NULL</code>
+            <code>idx_audit_operation ON (operation, created_at DESC)</code>
+          </div>
+          <div class="meta-row">
+            <h4>Partitioning</h4>
+            <code>PARTITION BY RANGE (created_at)  -- monthly partitions recommended</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- audit_bulk_operations -->
+      <div class="table-block" id="t-audit_bulk_operations">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>audit_bulk_operations</h3>
+          <span class="table-desc">Groups individual audit rows under one bulk action</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">operation</td><td class="col-type">audit_operation</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">BULK_UPDATE or BULK_DELETE</td></tr>
+              <tr><td class="col-name">entity_type</td><td class="col-type">VARCHAR(64)</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">affected_count</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Number of entities affected</td></tr>
+              <tr><td class="col-name">filter_criteria</td><td class="col-type">JSONB</td><td class="constraints-cell"></td><td class="col-desc">The query/filter that selected rows</td></tr>
+              <tr><td class="col-name">performed_by</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; users.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">started_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">completed_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>idx_audit_bulk_performed_by ON (performed_by, started_at DESC)</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- audit_retention_policies -->
+      <div class="table-block" id="t-audit_retention_policies">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>audit_retention_policies</h3>
+          <span class="table-desc">Controls how long audit data is retained per entity type</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">entity_type</td><td class="col-type">VARCHAR(64)</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-uq">UNIQUE</span></td><td class="col-desc">Table name or "*" for global default</td></tr>
+              <tr><td class="col-name">retention_days</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Days to keep in primary table. CHECK (&gt; 0)</td></tr>
+              <tr><td class="col-name">action_on_expiry</td><td class="col-type">retention_action</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 'ARCHIVE'</span></td><td class="col-desc">DELETE, ARCHIVE, or COMPRESS</td></tr>
+              <tr><td class="col-name">archive_table</td><td class="col-type">VARCHAR(128)</td><td class="constraints-cell"></td><td class="col-desc">Destination table for ARCHIVE action</td></tr>
+              <tr><td class="col-name">is_active</td><td class="col-type">BOOLEAN</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT true</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">last_applied_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"></td><td class="col-desc">Timestamp of last retention run</td></tr>
+              <tr><td class="col-name">created_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">updated_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Checks</h4>
+            <code>CHECK (retention_days &gt; 0)</code>
+            <code>CHECK (action_on_expiry != 'ARCHIVE' OR archive_table IS NOT NULL)</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===== ENGAGEMENT & ANALYTICS ===== -->
+    <section class="schema-section" id="analytics">
+      <div class="section-header">
+        <h2>Engagement &amp; Analytics</h2>
+        <span class="section-tag">5 tables</span>
+      </div>
+      <p class="section-desc">User activity tracking, pre-aggregated velocity and performance metrics, and per-user dashboard widget layout. The activity log feeds aggregation jobs that populate the metric tables.</p>
+
+      <!-- user_activity_log -->
+      <div class="table-block" id="t-user_activity_log">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>user_activity_log</h3>
+          <span class="table-desc">Raw event stream of user interactions</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">BIGINT</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">GENERATED ALWAYS AS IDENTITY</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">user_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; users.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">activity_type</td><td class="col-type">activity_type</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">LOGIN, LOGOUT, TASK_VIEW, TASK_CREATE, etc.</td></tr>
+              <tr><td class="col-name">entity_type</td><td class="col-type">VARCHAR(64)</td><td class="constraints-cell"></td><td class="col-desc">Object type interacted with (if applicable)</td></tr>
+              <tr><td class="col-name">entity_id</td><td class="col-type">UUID</td><td class="constraints-cell"></td><td class="col-desc">Object PK (if applicable)</td></tr>
+              <tr><td class="col-name">project_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; projects.id</span></td><td class="col-desc">Context project (null for global actions like LOGIN)</td></tr>
+              <tr><td class="col-name">metadata</td><td class="col-type">JSONB</td><td class="constraints-cell"></td><td class="col-desc">Event-specific data: search query, page number, device info</td></tr>
+              <tr><td class="col-name">session_id</td><td class="col-type">UUID</td><td class="constraints-cell"></td><td class="col-desc">Groups activities within a login session</td></tr>
+              <tr><td class="col-name">ip_address</td><td class="col-type">INET</td><td class="constraints-cell"></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">created_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>idx_activity_user ON (user_id, created_at DESC)</code>
+            <code>idx_activity_type_time ON (activity_type, created_at DESC)</code>
+            <code>idx_activity_entity ON (entity_type, entity_id, created_at DESC) WHERE entity_id IS NOT NULL</code>
+            <code>idx_activity_project ON (project_id, created_at DESC) WHERE project_id IS NOT NULL</code>
+          </div>
+          <div class="meta-row">
+            <h4>Partitioning</h4>
+            <code>PARTITION BY RANGE (created_at)  -- weekly or monthly partitions</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- task_velocity_metrics -->
+      <div class="table-block" id="t-task_velocity_metrics">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>task_velocity_metrics</h3>
+          <span class="table-desc">Pre-aggregated throughput and cycle-time data per project per period</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">project_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; projects.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">period_type</td><td class="col-type">metric_period</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">DAILY, WEEKLY, MONTHLY, QUARTERLY</td></tr>
+              <tr><td class="col-name">period_start</td><td class="col-type">DATE</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">First day of the aggregation period</td></tr>
+              <tr><td class="col-name">tasks_created</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">tasks_completed</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">tasks_overdue</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">avg_cycle_time_hours</td><td class="col-type">NUMERIC(10,2)</td><td class="constraints-cell"></td><td class="col-desc">Mean hours from creation to completion</td></tr>
+              <tr><td class="col-name">p50_cycle_time_hours</td><td class="col-type">NUMERIC(10,2)</td><td class="constraints-cell"></td><td class="col-desc">Median cycle time</td></tr>
+              <tr><td class="col-name">p90_cycle_time_hours</td><td class="col-type">NUMERIC(10,2)</td><td class="constraints-cell"></td><td class="col-desc">90th-percentile cycle time</td></tr>
+              <tr><td class="col-name">throughput_rate</td><td class="col-type">NUMERIC(8,4)</td><td class="constraints-cell"></td><td class="col-desc">Completed / period length (tasks/day)</td></tr>
+              <tr><td class="col-name">computed_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc">When aggregation last ran</td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>UNIQUE (project_id, period_type, period_start)</code>
+            <code>idx_velocity_project_period ON (project_id, period_start DESC)</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- team_performance_metrics -->
+      <div class="table-block" id="t-team_performance_metrics">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>team_performance_metrics</h3>
+          <span class="table-desc">Per-user/team performance aggregates by period</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">user_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; users.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">project_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; projects.id</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">period_type</td><td class="col-type">metric_period</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">period_start</td><td class="col-type">DATE</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">tasks_assigned</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc">New tasks assigned in period</td></tr>
+              <tr><td class="col-name">tasks_completed</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">tasks_overdue</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">avg_completion_hours</td><td class="col-type">NUMERIC(10,2)</td><td class="constraints-cell"></td><td class="col-desc">Mean hours to complete assigned tasks</td></tr>
+              <tr><td class="col-name">on_time_percentage</td><td class="col-type">NUMERIC(5,2)</td><td class="constraints-cell"></td><td class="col-desc">Percent completed before due date. CHECK (0..100)</td></tr>
+              <tr><td class="col-name">comments_posted</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">status_transitions</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc">Number of workflow transitions triggered</td></tr>
+              <tr><td class="col-name">computed_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>UNIQUE (user_id, project_id, period_type, period_start)</code>
+            <code>idx_team_perf_user ON (user_id, period_start DESC)</code>
+            <code>idx_team_perf_project ON (project_id, period_type, period_start DESC)</code>
+          </div>
+          <div class="meta-row">
+            <h4>Checks</h4>
+            <code>CHECK (on_time_percentage IS NULL OR (on_time_percentage &gt;= 0 AND on_time_percentage &lt;= 100))</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- dashboard_widgets -->
+      <div class="table-block" id="t-dashboard_widgets">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>dashboard_widgets</h3>
+          <span class="table-desc">Per-user dashboard layout and widget configuration</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">user_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; users.id ON DELETE CASCADE</span><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">widget_type</td><td class="col-type">VARCHAR(64)</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Component key (e.g., "velocity_chart", "my_tasks", "team_leaderboard")</td></tr>
+              <tr><td class="col-name">title</td><td class="col-type">VARCHAR(128)</td><td class="constraints-cell"></td><td class="col-desc">User-customized widget title</td></tr>
+              <tr><td class="col-name">config</td><td class="col-type">JSONB</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT '{}'</span></td><td class="col-desc">Widget-specific settings: filters, project scope, chart range, etc.</td></tr>
+              <tr><td class="col-name">grid_x</td><td class="col-type">SMALLINT</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc">Column position in grid layout</td></tr>
+              <tr><td class="col-name">grid_y</td><td class="col-type">SMALLINT</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc">Row position in grid layout</td></tr>
+              <tr><td class="col-name">grid_w</td><td class="col-type">SMALLINT</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 4</span></td><td class="col-desc">Width in grid columns (of 12)</td></tr>
+              <tr><td class="col-name">grid_h</td><td class="col-type">SMALLINT</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 3</span></td><td class="col-desc">Height in grid rows</td></tr>
+              <tr><td class="col-name">is_visible</td><td class="col-type">BOOLEAN</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT true</span></td><td class="col-desc">Hidden but not deleted</td></tr>
+              <tr><td class="col-name">created_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">updated_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+          <div class="meta-row">
+            <h4>Indexes</h4>
+            <code>idx_dashboard_widgets_user ON (user_id) WHERE is_visible = true</code>
+          </div>
+          <div class="meta-row">
+            <h4>Checks</h4>
+            <code>CHECK (grid_w &gt;= 1 AND grid_w &lt;= 12)</code>
+            <code>CHECK (grid_h &gt;= 1)</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- user_login_streaks -->
+      <div class="table-block" id="t-user_login_streaks">
+        <div class="table-title" onclick="this.parentElement.classList.toggle('collapsed')" tabindex="0" role="button" aria-expanded="true">
+          <span class="chevron">&#9660;</span>
+          <h3>user_login_streaks</h3>
+          <span class="table-desc">Running engagement streaks per user for gamification</span>
+        </div>
+        <div class="table-body">
+          <table class="schema-table">
+            <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td class="col-name">id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-pk">PK</span><span class="tag tag-df">DEFAULT gen_random_uuid()</span></td><td class="col-desc"></td></tr>
+              <tr><td class="col-name">user_id</td><td class="col-type">UUID</td><td class="constraints-cell"><span class="tag tag-fk">FK &rarr; users.id ON DELETE CASCADE</span><span class="tag tag-nn">NOT NULL</span><span class="tag tag-uq">UNIQUE</span></td><td class="col-desc">One row per user</td></tr>
+              <tr><td class="col-name">current_streak_days</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc">Consecutive days with at least one login</td></tr>
+              <tr><td class="col-name">longest_streak_days</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc">All-time best streak</td></tr>
+              <tr><td class="col-name">last_active_date</td><td class="col-type">DATE</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span></td><td class="col-desc">Last date counted toward streak</td></tr>
+              <tr><td class="col-name">total_active_days</td><td class="col-type">INTEGER</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT 0</span></td><td class="col-desc">Lifetime distinct active days</td></tr>
+              <tr><td class="col-name">updated_at</td><td class="col-type">TIMESTAMPTZ</td><td class="constraints-cell"><span class="tag tag-nn">NOT NULL</span><span class="tag tag-df">DEFAULT now()</span></td><td class="col-desc"></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===== DESIGN NOTES ===== -->
+    <section class="schema-section" id="notes">
+      <div class="section-header">
+        <h2>Design Notes</h2>
+      </div>
+      <div style="max-width:65ch; color: var(--text-secondary); font-size: 0.88rem; line-height: 1.7;">
+        <p style="margin:0 0 1rem"><strong style="color:var(--text)">Partitioning.</strong> Both <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">audit_log</code> and <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">user_activity_log</code> are partitioned by <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">created_at</code> using PostgreSQL native range partitioning. Monthly partitions are recommended for the audit log; weekly or monthly for activity depending on volume. Old partitions can be detached and archived without affecting query performance.</p>
+        <p style="margin:0 0 1rem"><strong style="color:var(--text)">Immutability.</strong> The <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">audit_log</code> and <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">workflow_transition_history</code> tables are append-only. Application-level enforcement is sufficient, though a <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">BEFORE UPDATE</code> trigger that raises an exception provides defense in depth.</p>
+        <p style="margin:0 0 1rem"><strong style="color:var(--text)">Pre-aggregation.</strong> Velocity and performance metrics are materialized by background jobs, not computed on read. The <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">computed_at</code> column tracks freshness; the dashboard can show a "last updated" indicator and trigger a re-aggregation if stale.</p>
+        <p style="margin:0 0 1rem"><strong style="color:var(--text)">Recurring task generation.</strong> A scheduler polls <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">recurrence_rules</code> where <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">status = 'ACTIVE' AND next_occurrence &lt;= now()</code>. It checks for exception dates, generates the task instance, increments <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">occurrences_created</code>, and computes the next occurrence. If <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">max_occurrences</code> is reached or <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">end_date</code> is past, status moves to COMPLETED.</p>
+        <p style="margin:0 0 1rem"><strong style="color:var(--text)">Workflow versioning.</strong> When a workflow structure changes, <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">version</code> is incremented and the old definition archived. Existing tasks continue on their assigned workflow version; only new tasks pick up the latest. The denormalized state names in <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">workflow_transition_history</code> ensure historical readability.</p>
+        <p style="margin:0"><strong style="color:var(--text)">Assumed base tables.</strong> This schema references <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">users</code>, <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">tasks</code>, and <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">projects</code> as existing tables with UUID primary keys. All timestamps use <code style="font-family:'IBM Plex Mono',monospace; font-size:0.82rem; background:var(--code-bg); padding:0.1em 0.35em; border-radius:3px">TIMESTAMPTZ</code> (UTC storage with timezone awareness).</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer class="page-footer">
+  <p>20 tables across 4 domains. PostgreSQL 15+ with JSONB, range partitioning, and partial indexes.</p>
+</footer>
+
+<script>
+  // Keyboard support for collapsible table headers
+  document.querySelectorAll('.table-title').forEach(el => {
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        el.click();
+      }
+    });
+  });
+</script>
