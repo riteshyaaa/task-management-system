@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: task_mgmt_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: taskuser
+      POSTGRES_PASSWORD: taskpassword
+      POSTGRES_DB: task_management_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskuser -d task_management_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - task_mgmt_network
+
+  # Backend REST API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: task_mgmt_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://taskuser:taskpassword@postgres:5432/task_management_db?schema=public
+      JWT_ACCESS_SECRET: super_secure_access_secret_key_change_in_production_32_chars!
+      JWT_REFRESH_SECRET: super_secure_refresh_secret_key_change_in_production_32_chars!
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      CORS_ORIGIN: http://localhost:3000,http://localhost:5173
+      LOG_LEVEL: info
+      ENABLE_SCHEDULER: "true"
+      RECURRING_TASK_CRON: "* * * * *"
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - task_mgmt_network
+
+  # Frontend Web Client
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: task_mgmt_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - task_mgmt_network
+
+  # Optional PGAdmin for visual DB inspection
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: task_mgmt_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@taskmgmt.com
+      PGADMIN_DEFAULT_PASSWORD: adminpassword
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - task_mgmt_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  task_mgmt_network:
+    driver: bridge
