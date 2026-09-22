@@ -14,16 +14,37 @@ export interface DashboardWidget {
   isVisible: boolean;
 }
 
+export interface DashboardMetrics {
+  openTasks: number;
+  overdueTasks: number;
+  dueToday: number;
+  waitingForClient: number;
+  waitingForReview: number;
+  completedThisPeriod: number;
+  engagementsInProgress: number;
+  totalEngagements?: number;
+}
+
+export interface DashboardCounts {
+  total: number;
+  todo: number;
+  inProgress: number;
+  review: number;
+  done: number;
+  overdue: number;
+  dueSoon: number;
+  dueToday?: number;
+  open?: number;
+  waitingForClient?: number;
+  waitingForReview?: number;
+  completedThisPeriod?: number;
+  engagementsInProgress?: number;
+  totalEngagements?: number;
+}
+
 export interface DashboardOverviewData {
-  counts: {
-    total: number;
-    todo: number;
-    inProgress: number;
-    review: number;
-    done: number;
-    overdue: number;
-    dueSoon: number;
-  };
+  counts: DashboardCounts;
+  metrics?: DashboardMetrics;
   priorityDistribution: {
     LOW: number;
     MEDIUM: number;

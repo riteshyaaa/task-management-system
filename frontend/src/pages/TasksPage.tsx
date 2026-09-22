@@ -53,6 +53,7 @@ export const TasksPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [selectedEngagementFilter, setSelectedEngagementFilter] = useState<string>('ALL');
+  const [operationalFilter, setOperationalFilter] = useState<string>('ALL');
 
   // Create Task Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -79,12 +80,16 @@ export const TasksPage: React.FC = () => {
   const [changeReason, setChangeReason] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
-  // Check URL params for create action or engagement filter
+  // Check URL params for create action, engagement filter, or operational queue filter
   useEffect(() => {
     const engParam = searchParams.get('engagementId');
     if (engParam) {
       setSelectedEngagementFilter(engParam);
       setSelectedEngagementId(engParam);
+    }
+    const filterParam = searchParams.get('filter');
+    if (filterParam) {
+      setOperationalFilter(filterParam);
     }
     if (searchParams.get('create') === 'true') {
       setIsCreateModalOpen(true);
@@ -331,6 +336,11 @@ export const TasksPage: React.FC = () => {
 
   // Filter tasks
   const filteredTasks = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(today);
+    todayEnd.setHours(23, 59, 59, 999);
+
     return tasks.filter((task) => {
       const matchesSearch =
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -340,9 +350,31 @@ export const TasksPage: React.FC = () => {
 
       const matchesPriority = priorityFilter === 'ALL' || task.priority === priorityFilter;
 
-      return matchesSearch && matchesPriority;
+      let matchesOperational = true;
+      if (operationalFilter === 'open') {
+        matchesOperational = task.status !== 'COMPLETED' && task.status !== 'DONE';
+      } else if (operationalFilter === 'overdue') {
+        const isNotDone = task.status !== 'COMPLETED' && task.status !== 'DONE';
+        const isOverdue = task.dueDate ? new Date(task.dueDate) < today : false;
+        matchesOperational = isNotDone && isOverdue;
+      } else if (operationalFilter === 'dueToday') {
+        if (!task.dueDate) {
+          matchesOperational = false;
+        } else {
+          const d = new Date(task.dueDate);
+          matchesOperational = d >= today && d <= todayEnd;
+        }
+      } else if (operationalFilter === 'waitingForClient') {
+        matchesOperational = task.status === 'WAITING_FOR_CLIENT';
+      } else if (operationalFilter === 'waitingForReview') {
+        matchesOperational = task.status === 'READY_FOR_REVIEW' || task.status === 'REVIEW';
+      } else if (operationalFilter === 'completedThisPeriod') {
+        matchesOperational = task.status === 'COMPLETED' || task.status === 'DONE';
+      }
+
+      return matchesSearch && matchesPriority && matchesOperational;
     });
-  }, [tasks, searchQuery, priorityFilter]);
+  }, [tasks, searchQuery, priorityFilter, operationalFilter]);
 
   if (loading) {
     return (
@@ -376,6 +408,28 @@ export const TasksPage: React.FC = () => {
           </div>
 
           <select
+            value={operationalFilter}
+            onChange={(e) => {
+              setOperationalFilter(e.target.value);
+              if (e.target.value === 'ALL') {
+                searchParams.delete('filter');
+              } else {
+                searchParams.set('filter', e.target.value);
+              }
+              setSearchParams(searchParams);
+            }}
+            className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 cursor-pointer"
+          >
+            <option value="ALL">All Operational Queues</option>
+            <option value="open">Open Tasks</option>
+            <option value="overdue">Overdue Tasks</option>
+            <option value="dueToday">Due Today</option>
+            <option value="waitingForClient">Waiting for Client</option>
+            <option value="waitingForReview">Waiting for Review</option>
+            <option value="completedThisPeriod">Completed This Period</option>
+          </select>
+
+          <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
             className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 cursor-pointer"
@@ -407,6 +461,38 @@ export const TasksPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Active Operational Filter Indicator */}
+      {operationalFilter !== 'ALL' && (
+        <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
+            <span className="text-slate-300">
+              Showing deliverables for operational queue:
+            </span>
+            <span className="font-bold text-white bg-indigo-600/30 px-2 py-0.5 rounded border border-indigo-500/30">
+              {operationalFilter === 'open' && 'Open Tasks'}
+              {operationalFilter === 'overdue' && 'Overdue Deliverables'}
+              {operationalFilter === 'dueToday' && 'Due Today'}
+              {operationalFilter === 'waitingForClient' && 'Waiting for Client'}
+              {operationalFilter === 'waitingForReview' && 'Waiting for Review'}
+              {operationalFilter === 'completedThisPeriod' && 'Completed This Period'}
+            </span>
+            <span className="text-slate-400 font-mono">({filteredTasks.length} deliverables)</span>
+          </div>
+
+          <button
+            onClick={() => {
+              setOperationalFilter('ALL');
+              searchParams.delete('filter');
+              setSearchParams(searchParams);
+            }}
+            className="flex items-center gap-1 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-2.5 py-1 rounded-lg transition-colors font-semibold"
+          >
+            <X className="w-3.5 h-3.5" /> Clear Filter
+          </button>
+        </div>
+      )}
 
       {/* Kanban Board Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 items-start">

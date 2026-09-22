@@ -13,7 +13,7 @@ import {
   CheckCircle,
   RefreshCw
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { engagementService } from '../services/engagement.service';
 import { serviceTypeService } from '../services/service-type.service';
 import { templateService } from '../services/template.service';
@@ -31,6 +31,7 @@ import { formatDate } from '../utils/formatters';
 
 export const EngagementsPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const { clients, currentClient, clientMembers } = useClient();
 
@@ -43,6 +44,13 @@ export const EngagementsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | EngagementStatus>('ALL');
   const [selectedServiceTypeId, setSelectedServiceTypeId] = useState<string>('ALL');
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam && ['ACTIVE', 'COMPLETED', 'CANCELLED'].includes(statusParam.toUpperCase())) {
+      setStatusFilter(statusParam.toUpperCase() as EngagementStatus);
+    }
+  }, [searchParams]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -298,6 +306,58 @@ export const EngagementsPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Active Filter Indicator */}
+      {(statusFilter !== 'ALL' || selectedServiceTypeId !== 'ALL' || searchQuery) && (
+        <div className="flex items-center gap-2 bg-indigo-950/40 border border-indigo-500/20 rounded-xl px-3.5 py-2 text-xs">
+          <span className="text-slate-400">Active Filters:</span>
+          {statusFilter !== 'ALL' && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              Status: {statusFilter}
+              <button
+                onClick={() => {
+                  setStatusFilter('ALL');
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.delete('status');
+                    return next;
+                  });
+                }}
+                className="hover:text-white"
+              >
+                ×
+              </button>
+            </span>
+          )}
+          {selectedServiceTypeId !== 'ALL' && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              Service: {serviceTypes.find((s) => s.id === selectedServiceTypeId)?.name || selectedServiceTypeId}
+              <button onClick={() => setSelectedServiceTypeId('ALL')} className="hover:text-white">
+                ×
+              </button>
+            </span>
+          )}
+          {searchQuery && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              Search: "{searchQuery}"
+              <button onClick={() => setSearchQuery('')} className="hover:text-white">
+                ×
+              </button>
+            </span>
+          )}
+          <button
+            onClick={() => {
+              setStatusFilter('ALL');
+              setSelectedServiceTypeId('ALL');
+              setSearchQuery('');
+              setSearchParams({});
+            }}
+            className="text-xs text-indigo-400 hover:text-indigo-300 underline ml-auto cursor-pointer"
+          >
+            Reset All
+          </button>
+        </div>
+      )}
 
       {/* Grid of Engagements */}
       {filteredEngagements.length === 0 ? (
