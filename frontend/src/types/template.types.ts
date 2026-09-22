@@ -1,4 +1,4 @@
-import { TaskPriority } from './task.types';
+﻿import { TaskPriority } from './task.types';
 
 export interface TemplateItem {
   id: string;
@@ -11,7 +11,7 @@ export interface TemplateItem {
 
 export interface TaskTemplate {
   id: string;
-  teamId: string;
+  clientId: string;
   name: string;
   description?: string | null;
   defaultTitle: string;
@@ -30,7 +30,7 @@ export type RuleActionType = 'UPDATE_STATUS' | 'ASSIGN_USER' | 'ADD_LABEL' | 'SE
 
 export interface AutomationRule {
   id: string;
-  teamId: string;
+  clientId: string;
   name: string;
   description?: string | null;
   triggerType: RuleTriggerType;

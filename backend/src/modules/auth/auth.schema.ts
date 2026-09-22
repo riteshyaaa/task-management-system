@@ -1,4 +1,4 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 
 export const registerSchema = z.object({
   email: z.string().email('Please provide a valid email address').toLowerCase().trim(),

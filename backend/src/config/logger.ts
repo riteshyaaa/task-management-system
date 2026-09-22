@@ -1,4 +1,4 @@
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+﻿export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 class Logger {
   private format(level: LogLevel, message: string, meta?: any): string {

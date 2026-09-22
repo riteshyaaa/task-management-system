@@ -1,4 +1,4 @@
-import { prisma } from '../src/config/database';
+﻿import { prisma } from '../src/config/database';
 import { RoleName } from '@prisma/client';
 
 export async function clearDatabase(): Promise<void> {
@@ -6,7 +6,7 @@ export async function clearDatabase(): Promise<void> {
     await prisma.notification.deleteMany();
     await prisma.userLoginStreak.deleteMany();
     await prisma.dashboardWidget.deleteMany();
-    await prisma.teamPerformanceMetric.deleteMany();
+    await prisma.clientPerformanceMetric.deleteMany();
     await prisma.taskVelocityMetric.deleteMany();
     await prisma.userActivityLog.deleteMany();
     await prisma.auditRetentionPolicy.deleteMany();
@@ -32,8 +32,8 @@ export async function clearDatabase(): Promise<void> {
     await prisma.taskLabelMap.deleteMany();
     await prisma.label.deleteMany();
     await prisma.task.deleteMany();
-    await prisma.teamMember.deleteMany();
-    await prisma.team.deleteMany();
+    await prisma.clientMember.deleteMany();
+    await prisma.client.deleteMany();
     await prisma.passwordReset.deleteMany();
     await prisma.refreshToken.deleteMany();
     await prisma.rolePermission.deleteMany();
@@ -59,13 +59,13 @@ export async function seedTestRoles(): Promise<void> {
     const memberRole = await prisma.role.upsert({
       where: { name: RoleName.MEMBER },
       update: {},
-      create: { name: RoleName.MEMBER, description: 'Standard team contributor access' }
+      create: { name: RoleName.MEMBER, description: 'Standard client contributor access' }
     });
 
     const managerRole = await prisma.role.upsert({
       where: { name: RoleName.MANAGER },
       update: {},
-      create: { name: RoleName.MANAGER, description: 'Team and project management privileges' }
+      create: { name: RoleName.MANAGER, description: 'client and project management privileges' }
     });
 
     // Create essential permissions
@@ -74,9 +74,9 @@ export async function seedTestRoles(): Promise<void> {
       { slug: 'tasks:read', name: 'Read Tasks', module: 'tasks' },
       { slug: 'tasks:update', name: 'Update Tasks', module: 'tasks' },
       { slug: 'tasks:delete', name: 'Delete Tasks', module: 'tasks' },
-      { slug: 'teams:create', name: 'Create Teams', module: 'teams' },
-      { slug: 'teams:read', name: 'Read Teams', module: 'teams' },
-      { slug: 'teams:update', name: 'Update Teams', module: 'teams' },
+      { slug: 'clients:create', name: 'Create clients', module: 'clients' },
+      { slug: 'clients:read', name: 'Read clients', module: 'clients' },
+      { slug: 'clients:update', name: 'Update clients', module: 'clients' },
       { slug: 'workflows:read', name: 'Read Workflows', module: 'workflows' },
       { slug: 'workflows:create', name: 'Create Workflows', module: 'workflows' },
       { slug: 'audit:read', name: 'Read Audit Logs', module: 'audit' }

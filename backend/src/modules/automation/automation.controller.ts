@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { automationService } from './automation.service';
 import { sendCreated, sendSuccess } from '../../shared/utils/response.util';
 import { UnauthorizedError } from '../../shared/errors/app-error';
@@ -16,8 +16,8 @@ export class AutomationController {
 
   async listRules(req: Request, res: Response, next: NextFunction) {
     try {
-      const teamId = req.query.teamId as string;
-      const rules = await automationService.listRules(teamId);
+      const clientId = req.query.clientId as string;
+      const rules = await automationService.listRules(clientId);
       return sendSuccess(res, rules);
     } catch (error) {
       next(error);

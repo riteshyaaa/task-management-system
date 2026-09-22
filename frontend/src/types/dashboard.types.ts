@@ -1,9 +1,9 @@
-export type WidgetType = 'METRIC_CARD' | 'VELOCITY_CHART' | 'STATUS_DISTRIBUTION' | 'LEADERBOARD' | 'RECENT_ACTIVITY' | 'STREAK_CARD' | 'UPCOMING_DUE';
+﻿export type WidgetType = 'METRIC_CARD' | 'VELOCITY_CHART' | 'STATUS_DISTRIBUTION' | 'LEADERBOARD' | 'RECENT_ACTIVITY' | 'STREAK_CARD' | 'UPCOMING_DUE';
 
 export interface DashboardWidget {
   id: string;
   userId: string;
-  teamId?: string | null;
+  clientId?: string | null;
   widgetType: WidgetType;
   title: string;
   positionX: number;

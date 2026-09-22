@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Layers, Mail, Lock, User, Building, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -89,7 +89,7 @@ export const RegisterPage: React.FC = () => {
           />
 
           <Input
-            label="Workspace / Team Name"
+            label="Workspace / client Name"
             placeholder="Acme Engineering"
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}

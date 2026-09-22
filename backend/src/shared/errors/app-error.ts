@@ -1,4 +1,4 @@
-export abstract class AppError extends Error {
+﻿export abstract class AppError extends Error {
   abstract readonly statusCode: number;
   readonly isOperational: boolean = true;
   readonly details?: any;

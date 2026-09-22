@@ -1,7 +1,7 @@
-import React from 'react';
+﻿import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { TeamProvider } from './context/TeamContext';
+import { ClientProvider } from './context/ClientContext';
 import { ToastProvider } from './context/ToastContext';
 import { AppLayout } from './components/layout/AppLayout';
 
@@ -15,7 +15,7 @@ import { TemplatesPage } from './pages/TemplatesPage';
 import { RecurringTasksPage } from './pages/RecurringTasksPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { AuditLogPage } from './pages/AuditLogPage';
-import { TeamPage } from './pages/TeamPage';
+import { ClientPage } from './pages/ClientPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -43,7 +43,7 @@ export const App: React.FC = () => {
     <BrowserRouter>
       <ToastProvider>
         <AuthProvider>
-          <TeamProvider>
+          <ClientProvider>
             <Routes>
               {/* Public Auth Routes */}
               <Route path="/login" element={<LoginPage />} />
@@ -66,13 +66,13 @@ export const App: React.FC = () => {
                 <Route path="recurring" element={<RecurringTasksPage />} />
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="audit" element={<AuditLogPage />} />
-                <Route path="team" element={<TeamPage />} />
+                <Route path="client" element={<ClientPage />} />
               </Route>
 
               {/* Catch-all fallback */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
-          </TeamProvider>
+          </ClientProvider>
         </AuthProvider>
       </ToastProvider>
     </BrowserRouter>

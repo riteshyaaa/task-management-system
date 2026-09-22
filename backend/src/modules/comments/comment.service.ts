@@ -1,4 +1,4 @@
-import { ActivityType } from '@prisma/client';
+﻿import { ActivityType } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { NotFoundError, ForbiddenError } from '../../shared/errors/app-error';
 import { CreateCommentInput, UpdateCommentInput } from './comment.schema';
@@ -49,7 +49,7 @@ export class CommentService {
         activityType: ActivityType.COMMENT,
         entityType: 'TaskComment',
         entityId: comment.id,
-        teamId: task.teamId,
+        clientId: task.clientId,
         ipAddress: auditContext?.ipAddress,
         metadata: {
           taskId: task.id,

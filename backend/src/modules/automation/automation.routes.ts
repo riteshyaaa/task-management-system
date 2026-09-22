@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { automationController } from './automation.controller';
 import { authenticate } from '../../middleware/auth.middleware';
 import { requirePermission } from '../../middleware/rbac.middleware';

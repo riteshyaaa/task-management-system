@@ -1,4 +1,4 @@
-import { RecurrenceStatus } from '@prisma/client';
+﻿import { RecurrenceStatus } from '@prisma/client';
 import { prisma } from '../config/database';
 import { recurringService } from '../modules/recurring/recurring.service';
 import { logger } from '../config/logger';
@@ -31,7 +31,7 @@ export class RecurringTaskJob {
         },
         include: {
           templateTask: {
-            select: { id: true, title: true, teamId: true }
+            select: { id: true, title: true, clientId: true }
           }
         }
       });

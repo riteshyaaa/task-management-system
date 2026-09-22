@@ -1,4 +1,4 @@
-import {
+﻿import {
   Prisma,
   RecurrenceFrequency,
   RecurrenceStatus,
@@ -115,7 +115,7 @@ export class RecurringService {
             description: true,
             status: true,
             priority: true,
-            teamId: true,
+            clientId: true,
             assigneeId: true
           }
         },
@@ -144,14 +144,14 @@ export class RecurringService {
    * Lists recurrence rules with pagination and filters
    */
   async listRecurrenceRules(query: FilterRecurrenceRulesQuery) {
-    const { teamId, status, frequency, page, limit } = query;
+    const { clientId, status, frequency, page, limit } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.RecurrenceRuleWhereInput = {
       ...(status && { status }),
       ...(frequency && { frequency }),
-      ...(teamId && {
-        templateTask: { teamId }
+      ...(clientId && {
+        templateTask: { clientId }
       })
     };
 
@@ -164,7 +164,7 @@ export class RecurringService {
         orderBy: { createdAt: 'desc' },
         include: {
           templateTask: {
-            select: { id: true, title: true, priority: true, teamId: true }
+            select: { id: true, title: true, priority: true, clientId: true }
           },
           weeklyDays: true,
           monthlyConfig: true,
@@ -369,9 +369,9 @@ export class RecurringService {
 
     const scheduledDate = scheduledForDate || rule.nextOccurrence || new Date();
 
-    // 1. Get next task number for the team
+    // 1. Get next task number for the client
     const lastTask = await prisma.task.findFirst({
-      where: { teamId: rule.templateTask.teamId },
+      where: { clientId: rule.templateTask.clientId },
       orderBy: { taskNumber: 'desc' },
       select: { taskNumber: true }
     });
@@ -389,7 +389,7 @@ export class RecurringService {
       // Create new spawned task
       const spawned = await tx.task.create({
         data: {
-          teamId: rule.templateTask.teamId,
+          clientId: rule.templateTask.clientId,
           taskNumber: nextTaskNumber,
           title: `${rule.templateTask.title} (${scheduledDate.toISOString().substring(0, 10)})`,
           description: rule.templateTask.description,
@@ -410,7 +410,7 @@ export class RecurringService {
           const sub = rule.templateTask.subtasks[i];
           await tx.task.create({
             data: {
-              teamId: rule.templateTask.teamId,
+              clientId: rule.templateTask.clientId,
               taskNumber: nextTaskNumber + i + 1,
               title: sub.title,
               description: sub.description,

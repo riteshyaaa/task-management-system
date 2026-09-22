@@ -1,4 +1,4 @@
-import { ActivityType, MetricPeriod, Prisma, TaskStatus } from '@prisma/client';
+﻿import { ActivityType, MetricPeriod, Prisma, TaskStatus } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { StreakCalculator } from './streak-calculator';
 import {
@@ -22,7 +22,7 @@ export class EngagementService {
         activityType: input.activityType,
         entityType: input.entityType,
         entityId: input.entityId,
-        teamId: input.teamId,
+        clientId: input.clientId,
         metadata: input.metadata as Prisma.InputJsonValue,
         sessionId: input.sessionId,
         ipAddress
@@ -68,12 +68,12 @@ export class EngagementService {
    * Queries user activity logs with pagination and filters
    */
   async getActivityLogs(query: FilterActivityLogsQuery) {
-    const { userId, teamId, activityType, entityType, startDate, endDate, page, limit } = query;
+    const { userId, clientId, activityType, entityType, startDate, endDate, page, limit } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.UserActivityLogWhereInput = {
       ...(userId && { userId }),
-      ...(teamId && { teamId }),
+      ...(clientId && { clientId }),
       ...(activityType && { activityType }),
       ...(entityType && { entityType }),
       ...(startDate || endDate
@@ -118,14 +118,14 @@ export class EngagementService {
   /**
    * Engagement leaderboard (Streaks + Active Days + Tasks Completed)
    */
-  async getLeaderboard(teamId?: string, limit: number = 10) {
-    // If teamId is specified, restrict to users in that team
+  async getLeaderboard(clientId?: string, limit: number = 10) {
+    // If clientId is specified, restrict to users in that client
     let userFilter: Prisma.UserWhereInput = { isActive: true };
-    if (teamId) {
+    if (clientId) {
       userFilter = {
         isActive: true,
-        teamMembers: {
-          some: { teamId }
+        clientMembers: {
+          some: { clientId }
         }
       };
     }
@@ -150,7 +150,7 @@ export class EngagementService {
         assigneeId: { in: userIds },
         status: TaskStatus.DONE,
         isDeleted: false,
-        ...(teamId ? { teamId } : {})
+        ...(clientId ? { clientId } : {})
       },
       _count: { id: true }
     });
@@ -181,16 +181,16 @@ export class EngagementService {
   }
 
   /**
-   * Computes and persists weekly/monthly task velocity for a team
+   * Computes and persists weekly/monthly task velocity for a client
    */
-  async computeVelocityMetrics(teamId: string, periodType: MetricPeriod = MetricPeriod.WEEKLY, periodStart?: Date) {
+  async computeVelocityMetrics(clientId: string, periodType: MetricPeriod = MetricPeriod.WEEKLY, periodStart?: Date) {
     const start = periodStart ? startOfDay(periodStart) : startOfWeek(new Date(), { weekStartsOn: 1 });
     const end = periodType === MetricPeriod.WEEKLY ? endOfWeek(start, { weekStartsOn: 1 }) : endOfDay(new Date());
 
     // 1. Tasks created in this period
     const tasksCreated = await prisma.task.count({
       where: {
-        teamId,
+        clientId,
         createdAt: { gte: start, lte: end }
       }
     });
@@ -198,7 +198,7 @@ export class EngagementService {
     // 2. Tasks completed in this period
     const completedTasks = await prisma.task.findMany({
       where: {
-        teamId,
+        clientId,
         status: TaskStatus.DONE,
         updatedAt: { gte: start, lte: end }
       },
@@ -216,7 +216,7 @@ export class EngagementService {
     const now = new Date();
     const tasksOverdue = await prisma.task.count({
       where: {
-        teamId,
+        clientId,
         status: { not: TaskStatus.DONE },
         dueDate: { lt: now, gte: start }
       }
@@ -246,14 +246,14 @@ export class EngagementService {
     // 5. Upsert metric in database
     const metric = await prisma.taskVelocityMetric.upsert({
       where: {
-        teamId_periodType_periodStart: {
-          teamId,
+        clientId_periodType_periodStart: {
+          clientId,
           periodType,
           periodStart: start
         }
       },
       create: {
-        teamId,
+        clientId,
         periodType,
         periodStart: start,
         tasksCreated,
@@ -280,12 +280,12 @@ export class EngagementService {
   }
 
   /**
-   * Retrieves historical velocity metrics for a team
+   * Retrieves historical velocity metrics for a client
    */
-  async getVelocityMetrics(teamId: string, periodType: MetricPeriod = MetricPeriod.WEEKLY, limit: number = 12) {
+  async getVelocityMetrics(clientId: string, periodType: MetricPeriod = MetricPeriod.WEEKLY, limit: number = 12) {
     return prisma.taskVelocityMetric.findMany({
       where: {
-        teamId,
+        clientId,
         periodType
       },
       orderBy: { periodStart: 'desc' },
@@ -294,14 +294,14 @@ export class EngagementService {
   }
 
   /**
-   * Computes individual team member performance metrics
+   * Computes individual client member performance metrics
    */
-  async computeTeamPerformance(teamId: string, periodType: MetricPeriod = MetricPeriod.WEEKLY, periodStart?: Date) {
+  async computeTeamPerformance(clientId: string, periodType: MetricPeriod = MetricPeriod.WEEKLY, periodStart?: Date) {
     const start = periodStart ? startOfDay(periodStart) : startOfWeek(new Date(), { weekStartsOn: 1 });
     const end = periodType === MetricPeriod.WEEKLY ? endOfWeek(start, { weekStartsOn: 1 }) : endOfDay(new Date());
 
-    const members = await prisma.teamMember.findMany({
-      where: { teamId },
+    const members = await prisma.clientMember.findMany({
+      where: { clientId },
       select: { userId: true }
     });
 
@@ -310,13 +310,13 @@ export class EngagementService {
     for (const { userId } of members) {
       // Assigned
       const tasksAssigned = await prisma.task.count({
-        where: { teamId, assigneeId: userId }
+        where: { clientId, assigneeId: userId }
       });
 
       // Completed in period
       const completed = await prisma.task.findMany({
         where: {
-          teamId,
+          clientId,
           assigneeId: userId,
           status: TaskStatus.DONE,
           updatedAt: { gte: start, lte: end }
@@ -330,7 +330,7 @@ export class EngagementService {
       const now = new Date();
       const tasksOverdue = await prisma.task.count({
         where: {
-          teamId,
+          clientId,
           assigneeId: userId,
           status: { not: TaskStatus.DONE },
           dueDate: { lt: now }
@@ -357,23 +357,23 @@ export class EngagementService {
         where: {
           userId,
           createdAt: { gte: start, lte: end },
-          task: { teamId }
+          task: { clientId }
         }
       });
 
       // Save metric
-      const metric = await prisma.teamPerformanceMetric.upsert({
+      const metric = await prisma.clientPerformanceMetric.upsert({
         where: {
-          userId_teamId_periodType_periodStart: {
+          userId_clientId_periodType_periodStart: {
             userId,
-            teamId,
+            clientId,
             periodType,
             periodStart: start
           }
         },
         create: {
           userId,
-          teamId,
+          clientId,
           periodType,
           periodStart: start,
           tasksAssigned,
@@ -401,16 +401,16 @@ export class EngagementService {
   }
 
   /**
-   * Retrieves member performance metrics for a team
+   * Retrieves member performance metrics for a client
    */
-  async getTeamPerformanceMetrics(
-    teamId: string,
+  async getclientPerformanceMetrics(
+    clientId: string,
     periodType: MetricPeriod = MetricPeriod.WEEKLY,
     userId?: string
   ) {
-    return prisma.teamPerformanceMetric.findMany({
+    return prisma.clientPerformanceMetric.findMany({
       where: {
-        teamId,
+        clientId,
         periodType,
         ...(userId && { userId })
       },
@@ -424,16 +424,16 @@ export class EngagementService {
   }
 
   /**
-   * Unified dashboard summary stats for a user and optional team
+   * Unified dashboard summary stats for a user and optional client
    */
-  async getDashboardSummary(userId: string, teamId?: string) {
+  async getDashboardSummary(userId: string, clientId?: string) {
     const now = new Date();
     const todayStart = startOfDay(now);
     const todayEnd = endOfDay(now);
 
     const baseWhere: Prisma.TaskWhereInput = {
       isDeleted: false,
-      ...(teamId ? { teamId } : {})
+      ...(clientId ? { clientId } : {})
     };
 
     const [
@@ -468,11 +468,11 @@ export class EngagementService {
           status: { not: TaskStatus.DONE }
         }
       }),
-      teamId ? prisma.task.count({ where: { teamId, isDeleted: false } }) : 0,
+      clientId ? prisma.task.count({ where: { clientId, isDeleted: false } }) : 0,
       this.getUserStreak(userId),
       prisma.userActivityLog.findMany({
         where: {
-          ...(teamId ? { teamId } : { userId })
+          ...(clientId ? { clientId } : { userId })
         },
         take: 8,
         orderBy: { createdAt: 'desc' },
@@ -482,9 +482,9 @@ export class EngagementService {
           }
         }
       }),
-      teamId
+      clientId
         ? prisma.taskVelocityMetric.findMany({
-            where: { teamId, periodType: MetricPeriod.WEEKLY },
+            where: { clientId, periodType: MetricPeriod.WEEKLY },
             orderBy: { periodStart: 'desc' },
             take: 4
           })

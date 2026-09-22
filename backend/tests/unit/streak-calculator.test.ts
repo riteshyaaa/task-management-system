@@ -1,4 +1,4 @@
-import { StreakCalculator } from '../../src/modules/engagement/streak-calculator';
+﻿import { StreakCalculator } from '../../src/modules/engagement/streak-calculator';
 import { prisma } from '../../src/config/database';
 
 jest.mock('../../src/config/database', () => ({

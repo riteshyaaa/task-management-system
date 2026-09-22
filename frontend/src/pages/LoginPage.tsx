@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Layers, Mail, Lock, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -80,7 +80,7 @@ export const LoginPage: React.FC = () => {
         {/* Quick Demo Accounts Fill */}
         <div className="mt-6 pt-5 border-t border-slate-800">
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5 text-center">
-            ⚡ Quick Demo Logins (Click to Autofill)
+            âš¡ Quick Demo Logins (Click to Autofill)
           </p>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -91,7 +91,7 @@ export const LoginPage: React.FC = () => {
               }}
               className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-500/10 text-left transition-all group"
             >
-              <span className="text-xs font-bold text-white group-hover:text-indigo-300 block">👑 Admin</span>
+              <span className="text-xs font-bold text-white group-hover:text-indigo-300 block">ðŸ‘‘ Admin</span>
               <span className="text-[10px] text-slate-500 truncate block">admin@example.com</span>
             </button>
 
@@ -103,7 +103,7 @@ export const LoginPage: React.FC = () => {
               }}
               className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-500/10 text-left transition-all group"
             >
-              <span className="text-xs font-bold text-white group-hover:text-indigo-300 block">💼 Manager</span>
+              <span className="text-xs font-bold text-white group-hover:text-indigo-300 block">ðŸ’¼ Manager</span>
               <span className="text-[10px] text-slate-500 truncate block">manager@example.com</span>
             </button>
 
@@ -115,7 +115,7 @@ export const LoginPage: React.FC = () => {
               }}
               className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-500/10 text-left transition-all group"
             >
-              <span className="text-xs font-bold text-white group-hover:text-indigo-300 block">💻 Developer</span>
+              <span className="text-xs font-bold text-white group-hover:text-indigo-300 block">ðŸ’» Developer</span>
               <span className="text-[10px] text-slate-500 truncate block">dev@example.com</span>
             </button>
 
@@ -127,7 +127,7 @@ export const LoginPage: React.FC = () => {
               }}
               className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-500/10 text-left transition-all group"
             >
-              <span className="text-xs font-bold text-white group-hover:text-indigo-300 block">🔍 QA Tester</span>
+              <span className="text-xs font-bold text-white group-hover:text-indigo-300 block">ðŸ” QA Tester</span>
               <span className="text-[10px] text-slate-500 truncate block">qa@example.com</span>
             </button>
           </div>

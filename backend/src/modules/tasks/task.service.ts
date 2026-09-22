@@ -1,4 +1,4 @@
-import { TaskStatus, TaskPriority, ActivityType, AuditOperation, Prisma } from '@prisma/client';
+﻿import { TaskStatus, TaskPriority, ActivityType, AuditOperation, Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { NotFoundError, BadRequestError, ConflictError } from '../../shared/errors/app-error';
 import { CreateTaskInput, UpdateTaskInput, FilterTasksQuery, ReorderTaskInput } from './task.schema';
@@ -10,7 +10,7 @@ export class TaskService {
    * Create a new task or subtask
    */
   async createTask(reporterId: string, input: CreateTaskInput, auditContext?: AuditContext) {
-    // If parentTaskId is provided, verify it exists and belongs to the same team
+    // If parentTaskId is provided, verify it exists and belongs to the same client
     if (input.parentTaskId) {
       const parent = await prisma.task.findUnique({
         where: { id: input.parentTaskId }
@@ -18,15 +18,15 @@ export class TaskService {
       if (!parent || parent.isDeleted) {
         throw new NotFoundError('Parent task not found or has been deleted');
       }
-      if (parent.teamId !== input.teamId) {
-        throw new BadRequestError('Parent task belongs to a different team workspace');
+      if (parent.clientId !== input.clientId) {
+        throw new BadRequestError('Parent task belongs to a different client workspace');
       }
     }
 
-    // Determine position: append to highest position in team + status
+    // Determine position: append to highest position in client + status
     const maxPosAggregate = await prisma.task.aggregate({
       where: {
-        teamId: input.teamId,
+        clientId: input.clientId,
         status: input.status,
         isDeleted: false
       },
@@ -38,7 +38,7 @@ export class TaskService {
       data: {
         title: input.title,
         description: input.description,
-        teamId: input.teamId,
+        clientId: input.clientId,
         reporterId,
         assigneeId: input.assigneeId,
         status: input.status,
@@ -94,7 +94,7 @@ export class TaskService {
         activityType: ActivityType.TASK_CREATE,
         entityType: 'Task',
         entityId: task.id,
-        teamId: input.teamId,
+        clientId: input.clientId,
         ipAddress: auditContext?.ipAddress,
         metadata: {
           title: task.title,
@@ -121,9 +121,9 @@ export class TaskService {
   /**
    * List tasks with comprehensive filtering and pagination
    */
-  async listTasks(teamId: string, query: FilterTasksQuery) {
+  async listTasks(clientId: string, query: FilterTasksQuery) {
     const where: Prisma.TaskWhereInput = {
-      teamId,
+      clientId,
       isDeleted: false
     };
 
@@ -252,7 +252,7 @@ export class TaskService {
   /**
    * Get single task by ID with full details
    */
-  async getTaskById(taskId: string, teamId?: string) {
+  async getTaskById(taskId: string, clientId?: string) {
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -304,8 +304,8 @@ export class TaskService {
       throw new NotFoundError('Task not found or has been deleted');
     }
 
-    if (teamId && task.teamId !== teamId) {
-      throw new BadRequestError('Task does not belong to the specified team workspace');
+    if (clientId && task.clientId !== clientId) {
+      throw new BadRequestError('Task does not belong to the specified client workspace');
     }
 
     return task;
@@ -403,7 +403,7 @@ export class TaskService {
         activityType,
         entityType: 'Task',
         entityId: task.id,
-        teamId: task.teamId,
+        clientId: task.clientId,
         ipAddress: auditContext?.ipAddress,
         metadata: {
           updatedFields: Object.keys(input),
@@ -430,13 +430,13 @@ export class TaskService {
   /**
    * Reorder task within or across status columns (Kanban drag-and-drop)
    */
-  async reorderTask(teamId: string, input: ReorderTaskInput) {
+  async reorderTask(clientId: string, input: ReorderTaskInput) {
     const task = await prisma.task.findUnique({
       where: { id: input.taskId }
     });
 
-    if (!task || task.isDeleted || task.teamId !== teamId) {
-      throw new NotFoundError('Task not found in this team workspace');
+    if (!task || task.isDeleted || task.clientId !== clientId) {
+      throw new NotFoundError('Task not found in this client workspace');
     }
 
     const currentStatus = task.status;
@@ -447,7 +447,7 @@ export class TaskService {
       // Shift subsequent tasks up in target status column
       await tx.task.updateMany({
         where: {
-          teamId,
+          clientId,
           status: targetStatus,
           isDeleted: false,
           position: { gte: targetPosition },
@@ -470,7 +470,7 @@ export class TaskService {
       });
     });
 
-    return this.getTaskById(input.taskId, teamId);
+    return this.getTaskById(input.taskId, clientId);
   }
 
   /**
@@ -564,7 +564,7 @@ export class TaskService {
     const subtask = await this.createTask(reporterId, {
       title: input.title,
       description: input.description,
-      teamId: parent.teamId,
+      clientId: parent.clientId,
       parentTaskId: parent.id,
       assigneeId: input.assigneeId,
       status: TaskStatus.TODO,

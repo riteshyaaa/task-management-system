@@ -1,4 +1,4 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 import { ActivityType, MetricPeriod } from '@prisma/client';
 
 export const activityTypeEnum = z.nativeEnum(ActivityType);
@@ -8,14 +8,14 @@ export const recordActivitySchema = z.object({
   activityType: activityTypeEnum,
   entityType: z.string().max(64).optional(),
   entityId: z.string().uuid('Invalid entity ID').optional(),
-  teamId: z.string().uuid('Invalid team ID').optional(),
+  clientId: z.string().uuid('Invalid client ID').optional(),
   metadata: z.record(z.any()).default({}),
   sessionId: z.string().uuid('Invalid session ID').optional()
 });
 
 export const filterActivityLogsQuerySchema = z.object({
   userId: z.string().uuid('Invalid user ID').optional(),
-  teamId: z.string().uuid('Invalid team ID').optional(),
+  clientId: z.string().uuid('Invalid client ID').optional(),
   activityType: activityTypeEnum.optional(),
   entityType: z.string().max(64).optional(),
   startDate: z.string().datetime().optional(),
@@ -25,13 +25,13 @@ export const filterActivityLogsQuerySchema = z.object({
 });
 
 export const velocityQuerySchema = z.object({
-  teamId: z.string().uuid('Invalid team ID'),
+  clientId: z.string().uuid('Invalid client ID'),
   periodType: metricPeriodEnum.default(MetricPeriod.WEEKLY),
   limit: z.coerce.number().int().min(1).max(52).default(12)
 });
 
 export const performanceQuerySchema = z.object({
-  teamId: z.string().uuid('Invalid team ID'),
+  clientId: z.string().uuid('Invalid client ID'),
   userId: z.string().uuid('Invalid user ID').optional(),
   periodType: metricPeriodEnum.default(MetricPeriod.WEEKLY),
   periodStart: z.string().optional()

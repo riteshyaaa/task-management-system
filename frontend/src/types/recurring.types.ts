@@ -1,4 +1,4 @@
-export type RecurrenceFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' | 'CUSTOM_CRON';
+﻿export type RecurrenceFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' | 'CUSTOM_CRON';
 export type InstanceStatus = 'PENDING' | 'GENERATED' | 'SKIPPED' | 'FAILED';
 
 export interface RecurrenceRule {
@@ -24,7 +24,7 @@ export interface RecurrenceRule {
     id: string;
     title: string;
     priority: string;
-    teamId: string;
+    clientId: string;
   };
   exceptions?: { id: string; exceptionDate: string; reason?: string }[];
   instances?: RecurrenceInstance[];

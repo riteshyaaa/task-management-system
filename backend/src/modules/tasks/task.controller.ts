@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { taskService } from './task.service';
 import { sendCreated, sendSuccess } from '../../shared/utils/response.util';
 import { UnauthorizedError, BadRequestError } from '../../shared/errors/app-error';
@@ -16,8 +16,8 @@ export class TaskController {
 
   async listTasks(req: Request, res: Response, next: NextFunction) {
     try {
-      const teamId = (req.query.teamId as string) || (req.headers['x-team-id'] as string);
-      const result = await taskService.listTasks(teamId, req.query as any);
+      const clientId = (req.query.clientId as string) || (req.headers['X-Client-Id'] as string);
+      const result = await taskService.listTasks(clientId, req.query as any);
       return sendSuccess(res, result.items, 'Tasks retrieved', 200, result.pagination);
     } catch (error) {
       next(error);
@@ -26,8 +26,8 @@ export class TaskController {
 
   async getTaskById(req: Request, res: Response, next: NextFunction) {
     try {
-      const teamId = (req.query.teamId as string) || (req.headers['x-team-id'] as string);
-      const task = await taskService.getTaskById(req.params.taskId, teamId);
+      const clientId = (req.query.clientId as string) || (req.headers['X-Client-Id'] as string);
+      const task = await taskService.getTaskById(req.params.taskId, clientId);
       return sendSuccess(res, task);
     } catch (error) {
       next(error);
@@ -46,8 +46,8 @@ export class TaskController {
 
   async reorderTask(req: Request, res: Response, next: NextFunction) {
     try {
-      const teamId = (req.body.teamId as string) || (req.headers['x-team-id'] as string) || (req.query.teamId as string);
-      const task = await taskService.reorderTask(teamId, req.body);
+      const clientId = (req.body.clientId as string) || (req.headers['X-Client-Id'] as string) || (req.query.clientId as string);
+      const task = await taskService.reorderTask(clientId, req.body);
       return sendSuccess(res, task, 'Task reordered successfully');
     } catch (error) {
       next(error);

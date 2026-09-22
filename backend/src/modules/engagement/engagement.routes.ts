@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { engagementController } from './engagement.controller';
 import { authenticate } from '../../middleware/auth.middleware';
 import { requirePermission } from '../../middleware/rbac.middleware';
@@ -53,7 +53,7 @@ router.get(
   '/performance',
   requirePermission('analytics:read'),
   validate({ query: performanceQuerySchema }),
-  engagementController.getTeamPerformanceMetrics
+  engagementController.getclientPerformanceMetrics
 );
 
 router.post(

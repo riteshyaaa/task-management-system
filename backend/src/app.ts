@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from 'express';
+﻿import express, { Express, Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
@@ -9,7 +9,7 @@ import { sendSuccess, sendError } from './shared/utils/response.util';
 import { NotFoundError } from './shared/errors/app-error';
 import authRouter from './modules/auth/auth.routes';
 import usersRouter from './modules/users/user.routes';
-import teamsRouter from './modules/teams/team.routes';
+import teamsRouter from './modules/clients/client.routes';
 import tasksRouter from './modules/tasks/task.routes';
 import labelsRouter from './modules/labels/label.routes';
 import templatesRouter from './modules/templates/template.routes';
@@ -32,7 +32,7 @@ export function createApp(): Express {
       origin: [ENV.CLIENT_URL, 'http://localhost:3000', 'http://localhost:5173'],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Team-Id']
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Id']
     })
   );
 
@@ -83,7 +83,7 @@ export function createApp(): Express {
   // 7. API Routes mounted
   app.use('/api/v1/auth', authRouter);
   app.use('/api/v1/users', usersRouter);
-  app.use('/api/v1/teams', teamsRouter);
+  app.use('/api/v1/clients', teamsRouter);
   app.use('/api/v1/tasks', tasksRouter);
   app.use('/api/v1/labels', labelsRouter);
   app.use('/api/v1/templates', templatesRouter);

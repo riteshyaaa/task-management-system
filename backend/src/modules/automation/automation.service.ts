@@ -1,4 +1,4 @@
-import { RuleTriggerType } from '@prisma/client';
+﻿import { RuleTriggerType } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { NotFoundError } from '../../shared/errors/app-error';
 import { CreateAutomationRuleInput, UpdateAutomationRuleInput } from './automation.schema';
@@ -8,7 +8,7 @@ export class AutomationService {
   async createRule(userId: string, input: CreateAutomationRuleInput) {
     const rule = await prisma.automationRule.create({
       data: {
-        teamId: input.teamId,
+        clientId: input.clientId,
         name: input.name,
         description: input.description,
         triggerType: input.triggerType,
@@ -28,9 +28,9 @@ export class AutomationService {
     return rule;
   }
 
-  async listRules(teamId: string) {
+  async listRules(clientId: string) {
     const rules = await prisma.automationRule.findMany({
-      where: { teamId },
+      where: { clientId },
       orderBy: { createdAt: 'desc' },
       include: {
         createdBy: {

@@ -1,11 +1,11 @@
-import {
+﻿import {
   Prisma,
   TransitionConditionType,
   HookEventType,
   NotificationType,
   TaskStatus,
   ActivityType,
-  TeamRole
+  ClientRole
 } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
@@ -15,7 +15,7 @@ import { AuditContext } from '../../shared/types/express';
 export interface TransitionContext {
   task: any;
   user: any;
-  teamMember?: any;
+  clientMember?: any;
   fromState: any;
   toState: any;
   transition: any;
@@ -37,11 +37,11 @@ export class WorkflowEngine {
         case TransitionConditionType.ROLE_CHECK: {
           const allowedRoles: string[] = config.allowedRoles || [];
           const userSystemRoles: string[] = context.user.userRoles?.map((ur: any) => ur.role?.name) || [];
-          const userTeamRole = context.teamMember?.role;
+          const userClientRole = context.clientMember?.role;
 
           const hasPermission =
             allowedRoles.some((r: string) => userSystemRoles.includes(r)) ||
-            (userTeamRole && allowedRoles.includes(userTeamRole)) ||
+            (userClientRole && allowedRoles.includes(userClientRole)) ||
             userSystemRoles.includes('ADMIN');
 
           if (!hasPermission) {
@@ -160,7 +160,7 @@ export class WorkflowEngine {
                 data: {
                   title: config.title,
                   description: config.description || null,
-                  teamId: context.task.teamId,
+                  clientId: context.task.clientId,
                   reporterId: context.user.id,
                   assigneeId: config.assigneeId || context.task.assigneeId || null,
                   parentTaskId: context.task.id,
@@ -289,7 +289,7 @@ export class WorkflowEngine {
       );
     }
 
-    // 4. Fetch user details and team membership for guard checking
+    // 4. Fetch user details and client membership for guard checking
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -299,10 +299,10 @@ export class WorkflowEngine {
       }
     });
 
-    const teamMember = await prisma.teamMember.findUnique({
+    const clientMember = await prisma.clientMember.findUnique({
       where: {
-        teamId_userId: {
-          teamId: task.teamId,
+        clientId_userId: {
+          clientId: task.clientId,
           userId
         }
       }
@@ -311,7 +311,7 @@ export class WorkflowEngine {
     const context: TransitionContext = {
       task,
       user,
-      teamMember,
+      clientMember,
       fromState,
       toState,
       transition
@@ -387,7 +387,7 @@ export class WorkflowEngine {
         activityType: mappedStatus === TaskStatus.DONE ? ActivityType.TASK_COMPLETE : ActivityType.TASK_UPDATE,
         entityType: 'Task',
         entityId: task.id,
-        teamId: task.teamId,
+        clientId: task.clientId,
         ipAddress: auditContext?.ipAddress,
         metadata: {
           action: 'WORKFLOW_TRANSITION',

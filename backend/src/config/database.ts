@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+﻿import { PrismaClient } from '@prisma/client';
 import { logger } from './logger';
 import { ENV } from './env.config';
 
@@ -32,14 +32,14 @@ if (ENV.NODE_ENV === 'development') {
 export async function connectDatabase(): Promise<void> {
   try {
     await prisma.$connect();
-    logger.info('✅ PostgreSQL connected successfully via Prisma');
+    logger.info('âœ… PostgreSQL connected successfully via Prisma');
   } catch (error) {
-    logger.error('❌ Failed to connect to PostgreSQL database:', error);
+    logger.error('âŒ Failed to connect to PostgreSQL database:', error);
     throw error;
   }
 }
 
 export async function disconnectDatabase(): Promise<void> {
   await prisma.$disconnect();
-  logger.info('🔌 PostgreSQL connection closed');
+  logger.info('ðŸ”Œ PostgreSQL connection closed');
 }

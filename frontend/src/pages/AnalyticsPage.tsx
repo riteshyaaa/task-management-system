@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Flame, Award, TrendingUp, Clock, Target, Users } from 'lucide-react';
-import { useTeam } from '../context/TeamContext';
+import { useClient } from '../context/ClientContext';
 import { engagementService } from '../services/engagement.service';
 import { LeaderboardUser, LoginStreak, TaskVelocityMetric, TeamPerformanceSummary } from '../types/engagement.types';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 
 export const AnalyticsPage: React.FC = () => {
-  const { currentTeam } = useTeam();
+  const { currentClient } = useClient();
   const [streak, setStreak] = useState<LoginStreak | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
   const [velocity, setVelocity] = useState<TaskVelocityMetric[]>([]);
@@ -20,9 +20,9 @@ export const AnalyticsPage: React.FC = () => {
         setLoading(true);
         const [streakData, lbData, vData, sData] = await Promise.allSettled([
           engagementService.getStreak(),
-          engagementService.getLeaderboard(currentTeam?.id),
-          currentTeam ? engagementService.getVelocityMetrics(currentTeam.id) : Promise.resolve([]),
-          currentTeam ? engagementService.getTeamSummary(currentTeam.id) : Promise.resolve(null),
+          engagementService.getLeaderboard(currentClient?.id),
+          currentClient ? engagementService.getVelocityMetrics(currentClient.id) : Promise.resolve([]),
+          currentClient ? engagementService.getTeamSummary(currentClient.id) : Promise.resolve(null),
         ]);
 
         if (streakData.status === 'fulfilled') setStreak(streakData.value);
@@ -37,7 +37,7 @@ export const AnalyticsPage: React.FC = () => {
     };
 
     loadAnalytics();
-  }, [currentTeam?.id]);
+  }, [currentClient?.id]);
 
   if (loading) {
     return (
@@ -73,7 +73,7 @@ export const AnalyticsPage: React.FC = () => {
               <h2 className="text-2xl sm:text-3xl font-bold text-white mt-0.5">
                 {streak?.currentStreak ?? 1} Consecutive Days
               </h2>
-              <p className="text-xs text-slate-400">Keep logging in daily to protect your team multiplier</p>
+              <p className="text-xs text-slate-400">Keep logging in daily to protect your client multiplier</p>
             </div>
           </div>
 
@@ -162,7 +162,7 @@ export const AnalyticsPage: React.FC = () => {
             <thead>
               <tr className="border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 <th className="py-3 px-4">Rank</th>
-                <th className="py-3 px-4">Team Member</th>
+                <th className="py-3 px-4">client Member</th>
                 <th className="py-3 px-4 text-center">Tasks Completed</th>
                 <th className="py-3 px-4 text-center">Streak</th>
                 <th className="py-3 px-4 text-right">Score</th>
@@ -181,7 +181,7 @@ export const AnalyticsPage: React.FC = () => {
                 return (
                   <tr key={u.id || idx} className="hover:bg-slate-900/40 transition-colors">
                     <td className="py-3.5 px-4 font-bold text-sm">
-                      {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                      {idx === 0 ? 'ðŸ¥‡' : idx === 1 ? 'ðŸ¥ˆ' : idx === 2 ? 'ðŸ¥‰' : `#${idx + 1}`}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">

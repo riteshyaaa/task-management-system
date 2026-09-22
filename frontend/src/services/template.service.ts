@@ -1,10 +1,10 @@
-import { apiClient } from './api.client';
+﻿import { apiClient } from './api.client';
 import { AutomationRule, TaskTemplate } from '../types/template.types';
 
 export const templateService = {
-  async getTemplates(teamId: string): Promise<TaskTemplate[]> {
+  async getTemplates(clientId: string): Promise<TaskTemplate[]> {
     const response = await apiClient.get<{ success: boolean; data: TaskTemplate[] }>('/templates', {
-      params: { teamId },
+      params: { clientId },
     });
     return response.data.data || [];
   },
@@ -17,7 +17,7 @@ export const templateService = {
   async instantiateTemplate(
     templateId: string,
     payload: {
-      teamId: string;
+      clientId: string;
       variables?: Record<string, string>;
       assigneeId?: string;
       dueDate?: string;
@@ -28,9 +28,9 @@ export const templateService = {
   },
 
   // Automation Rules
-  async getAutomationRules(teamId: string): Promise<AutomationRule[]> {
+  async getAutomationRules(clientId: string): Promise<AutomationRule[]> {
     const response = await apiClient.get<{ success: boolean; data: AutomationRule[] }>('/automation-rules', {
-      params: { teamId },
+      params: { clientId },
     });
     return response.data.data || [];
   },

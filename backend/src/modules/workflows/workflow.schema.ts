@@ -1,4 +1,4 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 import {
   WorkflowStatus,
   TransitionConditionType,
@@ -39,7 +39,7 @@ export const createWorkflowTransitionSchema = z.object({
 });
 
 export const createWorkflowDefinitionSchema = z.object({
-  teamId: z.string().uuid('Invalid team ID'),
+  clientId: z.string().uuid('Invalid client ID'),
   name: z.string().min(1).max(128).trim(),
   description: z.string().optional().nullable(),
   states: z.array(createWorkflowStateSchema).min(2, 'A workflow must have at least 2 states (e.g. Initial and Terminal)'),

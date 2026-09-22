@@ -149,14 +149,16 @@ enum RuleActionType {
   TRIGGER_WEBHOOK
 }
 
-enum TeamRole {
+enum ClientRole {
   OWNER
   MAINTAINER
   MEMBER
+
+  @@map("TeamRole")
 }
 
 // ==========================================
-// 1. IDENTITY, ACCESS & TEAMS
+// 1. IDENTITY, ACCESS & CLIENTS
 // ==========================================
 
 model User {
@@ -175,7 +177,7 @@ model User {
 
   // Relations
   userRoles           UserRole[]
-  teamMembers         TeamMember[]
+  clientMembers         ClientMember[]
   assignedTasks       Task[]               @relation("TaskAssignee")
   reportedTasks       Task[]               @relation("TaskReporter")
   taskComments        TaskComment[]
@@ -189,7 +191,7 @@ model User {
   auditLogs           AuditLog[]           @relation("AuditPerformer")
   bulkAuditOps        AuditBulkOperation[] @relation("BulkAuditPerformer")
   activityLogs        UserActivityLog[]
-  performanceMetrics  TeamPerformanceMetric[]
+  performanceMetrics  ClientPerformanceMetric[]
   dashboardWidgets    DashboardWidget[]
   loginStreak         UserLoginStreak?
   notifications       Notification[]
@@ -284,7 +286,7 @@ model PasswordReset {
   @@map("password_resets")
 }
 
-model Team {
+model Client {
   id          String       @id @default(uuid()) @db.Uuid
   name        String       @db.VarChar(100)
   slug        String       @unique @db.VarChar(120)
@@ -293,7 +295,7 @@ model Team {
   createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  members         TeamMember[]
+  members         ClientMember[]
   tasks           Task[]
   workflows       WorkflowDefinition[]
   labels          Label[]
@@ -303,17 +305,17 @@ model Team {
   @@map("teams")
 }
 
-model TeamMember {
+model ClientMember {
   id        String    @id @default(uuid()) @db.Uuid
-  teamId    String    @map("team_id") @db.Uuid
+  clientId    String    @map("team_id") @db.Uuid
   userId    String    @map("user_id") @db.Uuid
-  role      TeamRole  @default(MEMBER)
+  role      ClientRole  @default(MEMBER)
   joinedAt  DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
 
-  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([teamId, userId])
+  @@unique([clientId, userId])
   @@index([userId])
   @@map("team_members")
 }
@@ -343,7 +345,7 @@ model Task {
   // Foreign Keys
   assigneeId     String?       @map("assignee_id") @db.Uuid
   reporterId     String        @map("reporter_id") @db.Uuid
-  teamId         String        @map("team_id") @db.Uuid
+  clientId         String        @map("team_id") @db.Uuid
   parentTaskId   String?       @map("parent_task_id") @db.Uuid
   templateId     String?       @map("template_id") @db.Uuid
   recurrenceId   String?       @map("recurrence_id") @db.Uuid
@@ -354,7 +356,7 @@ model Task {
   // Relations
   assignee       User?         @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   reporter       User          @relation("TaskReporter", fields: [reporterId], references: [id], onDelete: Restrict)
-  team           Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  client           Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
   parentTask     Task?         @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
   subtasks       Task[]        @relation("SubTasks")
   template       TaskTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
@@ -368,7 +370,7 @@ model Task {
   recurrenceInstances RecurringTaskInstance[]
   masterForRules RecurrenceRule[] @relation("TemplateTask")
 
-  @@index([teamId, status, position])
+  @@index([clientId, status, position])
   @@index([assigneeId, status])
   @@index([reporterId])
   @@index([parentTaskId])
@@ -379,16 +381,16 @@ model Task {
 
 model Label {
   id          String         @id @default(uuid()) @db.Uuid
-  teamId      String         @map("team_id") @db.Uuid
+  clientId      String         @map("team_id") @db.Uuid
   name        String         @db.VarChar(50)
   color       String         @db.VarChar(7)
   description String?        @db.VarChar(200)
   createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  team        Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  client        Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
   tasks       TaskLabelMap[]
 
-  @@unique([teamId, name])
+  @@unique([clientId, name])
   @@map("labels")
 }
 
@@ -442,7 +444,7 @@ model TaskWatcher {
 
 model TaskTemplate {
   id             String         @id @default(uuid()) @db.Uuid
-  teamId         String         @map("team_id") @db.Uuid
+  clientId         String         @map("team_id") @db.Uuid
   name           String         @db.VarChar(128)
   description    String?        @db.Text
   defaultTitle   String         @map("default_title") @db.VarChar(255)
@@ -454,12 +456,12 @@ model TaskTemplate {
   createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  team           Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  client           Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdBy      User           @relation("TemplateCreator", fields: [createdById], references: [id])
   templateItems  TemplateItem[]
   generatedTasks Task[]
 
-  @@unique([teamId, name])
+  @@unique([clientId, name])
   @@map("task_templates")
 }
 
@@ -480,7 +482,7 @@ model TemplateItem {
 
 model AutomationRule {
   id              String          @id @default(uuid()) @db.Uuid
-  teamId          String          @map("team_id") @db.Uuid
+  clientId          String          @map("team_id") @db.Uuid
   name            String          @db.VarChar(128)
   description     String?         @db.Text
   triggerType     RuleTriggerType @map("trigger_type")
@@ -494,10 +496,10 @@ model AutomationRule {
   createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  team            Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  client            Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdBy       User            @relation("RuleCreator", fields: [createdById], references: [id])
 
-  @@index([teamId, triggerType, isActive])
+  @@index([clientId, triggerType, isActive])
   @@map("automation_rules")
 }
 
@@ -597,7 +599,7 @@ model RecurringTaskInstance {
 
 model WorkflowDefinition {
   id             String               @id @default(uuid()) @db.Uuid
-  teamId         String               @map("team_id") @db.Uuid
+  clientId         String               @map("team_id") @db.Uuid
   name           String               @db.VarChar(128)
   description    String?              @db.Text
   version        Int                  @default(1)
@@ -607,14 +609,14 @@ model WorkflowDefinition {
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  team           Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  client           Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdBy      User                 @relation("WorkflowCreator", fields: [createdById], references: [id])
   states         WorkflowState[]
   transitions    WorkflowTransition[]
   assignments    TaskWorkflowAssignment[]
 
-  @@unique([teamId, name, version])
-  @@index([teamId, status])
+  @@unique([clientId, name, version])
+  @@index([clientId, status])
   @@map("workflow_definitions")
 }
 
@@ -804,7 +806,7 @@ model UserActivityLog {
   activityType ActivityType @map("activity_type")
   entityType   String?      @map("entity_type") @db.VarChar(64)
   entityId     String?      @map("entity_id") @db.Uuid
-  teamId       String?      @map("team_id") @db.Uuid
+  clientId       String?      @map("team_id") @db.Uuid
   metadata     Json         @default("{}") @db.JsonB
   sessionId    String?      @map("session_id") @db.Uuid
   ipAddress    String?      @map("ip_address") @db.VarChar(45)
@@ -820,7 +822,7 @@ model UserActivityLog {
 
 model TaskVelocityMetric {
   id               String       @id @default(uuid()) @db.Uuid
-  teamId           String       @map("team_id") @db.Uuid
+  clientId           String       @map("team_id") @db.Uuid
   periodType       MetricPeriod @map("period_type")
   periodStart      DateTime     @map("period_start") @db.Date
   tasksCreated     Int          @default(0) @map("tasks_created")
@@ -832,15 +834,15 @@ model TaskVelocityMetric {
   throughputRate   Decimal?     @map("throughput_rate") @db.Decimal(8, 4)
   computedAt       DateTime     @default(now()) @map("computed_at") @db.Timestamptz(6)
 
-  @@unique([teamId, periodType, periodStart])
-  @@index([teamId, periodStart(sort: Desc)])
+  @@unique([clientId, periodType, periodStart])
+  @@index([clientId, periodStart(sort: Desc)])
   @@map("task_velocity_metrics")
 }
 
-model TeamPerformanceMetric {
+model ClientPerformanceMetric {
   id                 String       @id @default(uuid()) @db.Uuid
   userId             String       @map("user_id") @db.Uuid
-  teamId             String       @map("team_id") @db.Uuid
+  clientId             String       @map("team_id") @db.Uuid
   periodType         MetricPeriod @map("period_type")
   periodStart        DateTime     @map("period_start") @db.Date
   tasksAssigned      Int          @default(0) @map("tasks_assigned")
@@ -854,9 +856,9 @@ model TeamPerformanceMetric {
 
   user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, teamId, periodType, periodStart])
+  @@unique([userId, clientId, periodType, periodStart])
   @@index([userId, periodStart(sort: Desc)])
-  @@index([teamId, periodType, periodStart(sort: Desc)])
+  @@index([clientId, periodType, periodStart(sort: Desc)])
   @@map("team_performance_metrics")
 }
 

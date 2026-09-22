@@ -1,4 +1,4 @@
-import {
+﻿import {
   Prisma,
   RuleTriggerType,
   NotificationType,
@@ -126,15 +126,15 @@ export class AutomationEngine {
         }
 
         case RuleActionType.CREATE_TASK: {
-          const teamId = taskContext.teamId || payload.teamId;
+          const clientId = taskContext.clientId || payload.clientId;
           const reporterId = taskContext.reporterId || payload.reporterId;
 
-          if (teamId && reporterId) {
+          if (clientId && reporterId) {
             await prisma.task.create({
               data: {
                 title: payload.title || 'Automated Follow-up Task',
                 description: payload.description || null,
-                teamId,
+                clientId,
                 reporterId,
                 assigneeId: payload.assigneeId || null,
                 parentTaskId: payload.createAsSubtask ? taskId : null,
@@ -164,14 +164,14 @@ export class AutomationEngine {
    * Finds matching active rules and executes their actions.
    */
   public async handleEvent(
-    teamId: string,
+    clientId: string,
     triggerType: RuleTriggerType,
     eventContext: Record<string, any>
   ): Promise<number> {
     try {
       const activeRules = await prisma.automationRule.findMany({
         where: {
-          teamId,
+          clientId,
           triggerType,
           isActive: true
         }

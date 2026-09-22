@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { GitBranch, Plus, ArrowRight, Shield, Bell, CheckCircle2 } from 'lucide-react';
-import { useTeam } from '../context/TeamContext';
+import { useClient } from '../context/ClientContext';
 import { useToast } from '../context/ToastContext';
 import { workflowService } from '../services/workflow.service';
 import { WorkflowDefinition } from '../types/workflow.types';
@@ -11,7 +11,7 @@ import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 
 export const WorkflowsPage: React.FC = () => {
-  const { currentTeam } = useTeam();
+  const { currentClient } = useClient();
   const { showToast } = useToast();
   const [workflows, setWorkflows] = useState<WorkflowDefinition[]>([]);
   const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowDefinition | null>(null);
@@ -25,10 +25,10 @@ export const WorkflowsPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const loadWorkflows = async () => {
-    if (!currentTeam) return;
+    if (!currentClient) return;
     try {
       setLoading(true);
-      const data = await workflowService.getWorkflows(currentTeam.id);
+      const data = await workflowService.getWorkflows(currentClient.id);
       setWorkflows(data);
       if (data.length > 0 && !selectedWorkflow) {
         setSelectedWorkflow(data[0]);
@@ -42,7 +42,7 @@ export const WorkflowsPage: React.FC = () => {
 
   useEffect(() => {
     loadWorkflows();
-  }, [currentTeam?.id]);
+  }, [currentClient?.id]);
 
   if (loading) {
     return (
@@ -54,7 +54,7 @@ export const WorkflowsPage: React.FC = () => {
 
   const handleCreateWorkflow = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentTeam || !name.trim()) return;
+    if (!currentClient || !name.trim()) return;
 
     try {
       setSubmitting(true);
@@ -91,7 +91,7 @@ export const WorkflowsPage: React.FC = () => {
       }
 
       const created = await workflowService.createWorkflow({
-        teamId: currentTeam.id,
+        clientId: currentClient.id,
         name,
         description,
         states,
@@ -162,9 +162,9 @@ export const WorkflowsPage: React.FC = () => {
                 {wf.description && <p className="text-xs text-slate-400 line-clamp-2">{wf.description}</p>}
                 <div className="flex items-center gap-3 mt-3 text-[11px] text-slate-500">
                   <span>{wf.states?.length || 0} States</span>
-                  <span>•</span>
+                  <span>â€¢</span>
                   <span>{wf.transitions?.length || 0} Transitions</span>
-                  <span>•</span>
+                  <span>â€¢</span>
                   <span>v{wf.version}</span>
                 </div>
               </div>
@@ -237,7 +237,7 @@ export const WorkflowsPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-white">{trans.name}</span>
                           <span className="text-xs text-slate-500">
-                            ({trans.fromState?.name} → {trans.toState?.name})
+                            ({trans.fromState?.name} â†’ {trans.toState?.name})
                           </span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 mt-1.5">

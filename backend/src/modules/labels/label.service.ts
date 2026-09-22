@@ -1,4 +1,4 @@
-import { prisma } from '../../config/database';
+﻿import { prisma } from '../../config/database';
 import { NotFoundError, ConflictError } from '../../shared/errors/app-error';
 import { CreateLabelInput, UpdateLabelInput } from './label.schema';
 
@@ -6,15 +6,15 @@ export class LabelService {
   async createLabel(input: CreateLabelInput) {
     const existing = await prisma.label.findUnique({
       where: {
-        teamId_name: {
-          teamId: input.teamId,
+        clientId_name: {
+          clientId: input.clientId,
           name: input.name
         }
       }
     });
 
     if (existing) {
-      throw new ConflictError(`Label '${input.name}' already exists in this team workspace`);
+      throw new ConflictError(`Label '${input.name}' already exists in this client workspace`);
     }
 
     const label = await prisma.label.create({
@@ -22,16 +22,16 @@ export class LabelService {
         name: input.name,
         color: input.color,
         description: input.description,
-        teamId: input.teamId
+        clientId: input.clientId
       }
     });
 
     return label;
   }
 
-  async listLabels(teamId: string) {
+  async listLabels(clientId: string) {
     const labels = await prisma.label.findMany({
-      where: { teamId },
+      where: { clientId },
       orderBy: { name: 'asc' },
       include: {
         _count: {
@@ -53,14 +53,14 @@ export class LabelService {
     if (input.name && input.name !== label.name) {
       const existing = await prisma.label.findUnique({
         where: {
-          teamId_name: {
-            teamId: label.teamId,
+          clientId_name: {
+            clientId: label.clientId,
             name: input.name
           }
         }
       });
       if (existing) {
-        throw new ConflictError(`Label '${input.name}' already exists in this team workspace`);
+        throw new ConflictError(`Label '${input.name}' already exists in this client workspace`);
       }
     }
 

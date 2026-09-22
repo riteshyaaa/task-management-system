@@ -1,4 +1,4 @@
-export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
+﻿export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 export interface Label {
@@ -6,7 +6,7 @@ export interface Label {
   name: string;
   color: string;
   description?: string | null;
-  teamId: string;
+  clientId: string;
 }
 
 export interface TaskComment {
@@ -54,7 +54,7 @@ export interface Task {
   isDeleted: boolean;
   version: number;
   metadata?: Record<string, any>;
-  teamId: string;
+  clientId: string;
   assigneeId?: string | null;
   reporterId: string;
   parentTaskId?: string | null;

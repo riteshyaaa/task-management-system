@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CheckSquare,
@@ -12,7 +12,7 @@ import {
   Calendar,
   Activity,
 } from 'lucide-react';
-import { useTeam } from '../context/TeamContext';
+import { useClient } from '../context/ClientContext';
 import { useAuth } from '../context/AuthContext';
 import { dashboardService } from '../services/dashboard.service';
 import { engagementService } from '../services/engagement.service';
@@ -23,7 +23,7 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 
 export const DashboardPage: React.FC = () => {
-  const { currentTeam } = useTeam();
+  const { currentClient } = useClient();
   const { user } = useAuth();
   const [overview, setOverview] = useState<DashboardOverviewData | null>(null);
   const [streak, setStreak] = useState<LoginStreak | null>(null);
@@ -35,9 +35,9 @@ export const DashboardPage: React.FC = () => {
       try {
         setLoading(true);
         const [overviewData, streakData, leaderboardData] = await Promise.allSettled([
-          dashboardService.getOverview(currentTeam?.id),
+          dashboardService.getOverview(currentClient?.id),
           engagementService.getStreak(),
-          engagementService.getLeaderboard(currentTeam?.id),
+          engagementService.getLeaderboard(currentClient?.id),
         ]);
 
         if (overviewData.status === 'fulfilled') setOverview(overviewData.value);
@@ -51,7 +51,7 @@ export const DashboardPage: React.FC = () => {
     };
 
     loadDashboard();
-  }, [currentTeam?.id]);
+  }, [currentClient?.id]);
 
   if (loading) {
     return (
@@ -67,10 +67,10 @@ export const DashboardPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-indigo-950/60 via-slate-900/60 to-purple-950/40 border border-indigo-500/20 rounded-3xl p-6 sm:p-8 backdrop-blur-md">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-            Welcome back, {user?.firstName}! 👋
+            Welcome back, {user?.firstName}! ðŸ‘‹
           </h1>
           <p className="text-sm text-slate-300 mt-1">
-            Here's what's happening across <span className="font-semibold text-indigo-300">{currentTeam?.name || 'your workspace'}</span> today.
+            Here's what's happening across <span className="font-semibold text-indigo-300">{currentClient?.name || 'your workspace'}</span> today.
           </p>
         </div>
 
@@ -148,7 +148,7 @@ export const DashboardPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white">Daily Login Streak</h3>
-                  <p className="text-xs text-slate-400">Consistent activity boosts team velocity</p>
+                  <p className="text-xs text-slate-400">Consistent activity boosts client velocity</p>
                 </div>
               </div>
               <Badge variant="warning" size="md">
@@ -281,7 +281,7 @@ export const DashboardPage: React.FC = () => {
                     >
                       <div className="flex items-center gap-3">
                         <span className="w-5 text-center text-xs font-bold text-slate-400">
-                          {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`}
+                          {idx === 0 ? 'ðŸ¥‡' : idx === 1 ? 'ðŸ¥ˆ' : idx === 2 ? 'ðŸ¥‰' : `${idx + 1}`}
                         </span>
                         <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-xs text-white">
                           {initial}

@@ -20,7 +20,7 @@ A full-stack, enterprise-grade Task Management and Workflow Automation Platform.
 - **Hybrid RBAC + Workspace ABAC Security**:
   - Global system roles (`SUPER_ADMIN`, `ADMIN`, `MEMBER`, `GUEST`).
   - Granular permission checking (`requirePermission('tasks:create')`).
-  - Multi-tenant team workspace isolation (`OWNER`, `MAINTAINER`, `MEMBER`) preventing unauthorized cross-workspace data access.
+  - Multi-tenant client workspace isolation (`OWNER`, `MAINTAINER`, `MEMBER`) preventing unauthorized cross-workspace data access.
 - **Enterprise Middleware Suite**: Centralized RFC 7807 problem details error handling, Helmet security headers, CORS origin whitelisting, and brute-force rate limiting.
 
 ### 2. Directed Acyclic Graph (DAG) Workflow State Machine
@@ -54,7 +54,7 @@ A full-stack, enterprise-grade Task Management and Workflow Automation Platform.
 
 ### 7. Engagement Gamification & Analytics Dashboard
 - **Daily Login Streak Calculator**: Calendar-day tracking measuring consecutive daily activity, same-day no-op idempotency, and inactivity resets.
-- **Team Velocity & Performance Metrics**: Aggregates completed story points, average cycle time, overdue ratios, and member leaderboards.
+- **Client Velocity & Performance Metrics**: Aggregates completed story points, average cycle time, overdue ratios, and member leaderboards.
 - **Customizable Dashboard Grid**: Metric summary cards, velocity charts, and personalized widget layouts.
 
 ---
@@ -200,7 +200,7 @@ npm test
 ### Task Management (`/api/v1/tasks`)
 | Method | Endpoint | Description | Permissions |
 |---|---|---|---|
-| `GET` | `/api/v1/tasks` | List & filter tasks (search, status, priority, team) | `tasks:read` |
+| `GET` | `/api/v1/tasks` | List & filter tasks (search, status, priority, client) | `tasks:read` |
 | `POST` | `/api/v1/tasks` | Create new task | `tasks:create` |
 | `GET` | `/api/v1/tasks/:id` | Get task details with subtasks, comments, labels | `tasks:read` |
 | `PUT` | `/api/v1/tasks/:id` | Update task (Guarded with OCC `version`) | `tasks:update` |
@@ -209,10 +209,23 @@ npm test
 | `PUT` | `/api/v1/tasks/:id/subtasks/:subtaskId` | Toggle subtask completion status | `tasks:update` |
 | `POST` | `/api/v1/tasks/:id/comments` | Add comment thread to task | `tasks:read` |
 
+### Client Workspace Management (`/api/v1/clients`)
+| Method | Endpoint | Description | Permissions |
+|---|---|---|---|
+| `GET` | `/api/v1/clients` | List user's client workspaces | Authenticated |
+| `POST` | `/api/v1/clients` | Create new client workspace | `clients:create` |
+| `GET` | `/api/v1/clients/:id` | Get client workspace details | `clients:read` |
+| `PATCH` | `/api/v1/clients/:id` | Update client details | `clients:update` |
+| `DELETE` | `/api/v1/clients/:id` | Archive client workspace | `clients:delete` |
+| `GET` | `/api/v1/clients/:id/members` | List client workspace members | `clients:read` |
+| `POST` | `/api/v1/clients/:id/members` | Add member to client workspace | `clients:update` |
+| `PATCH` | `/api/v1/clients/:id/members/:userId` | Update member role | `clients:update` |
+| `DELETE` | `/api/v1/clients/:id/members/:userId` | Remove member from client workspace | `clients:update` |
+
 ### Workflow State Machine (`/api/v1/workflows`)
 | Method | Endpoint | Description | Permissions |
 |---|---|---|---|
-| `GET` | `/api/v1/workflows` | List team workflow definitions | `workflows:read` |
+| `GET` | `/api/v1/workflows` | List client workflow definitions | `workflows:read` |
 | `POST` | `/api/v1/workflows` | Create custom DAG workflow definition | `workflows:create` |
 | `POST` | `/api/v1/workflows/tasks/:taskId/transition` | Execute state transition with guard evaluation | `tasks:update` |
 | `GET` | `/api/v1/workflows/tasks/:taskId/history` | Fetch task transition timeline & durations | `workflows:read` |
@@ -231,8 +244,8 @@ npm test
 |---|---|---|---|
 | `GET` | `/api/v1/audit` | Query append-only audit trail with JSONB diffs | `audit:read` |
 | `GET` | `/api/v1/engagement/streaks/me` | Fetch user daily login streak & metrics | Authenticated |
-| `GET` | `/api/v1/engagement/velocity` | Fetch team velocity & sprint completion metrics | `teams:read` |
-| `GET` | `/api/v1/engagement/leaderboard` | Fetch team member engagement leaderboard | `teams:read` |
+| `GET` | `/api/v1/engagement/velocity` | Fetch client velocity & sprint completion metrics | `clients:read` |
+| `GET` | `/api/v1/engagement/leaderboard` | Fetch client member engagement leaderboard | `clients:read` |
 
 ---
 

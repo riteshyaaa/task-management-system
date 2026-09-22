@@ -1,4 +1,4 @@
-import { RecurrenceFrequency, DayOfWeek } from '@prisma/client';
+﻿import { RecurrenceFrequency, DayOfWeek } from '@prisma/client';
 import { RecurrenceCalculator, RecurrenceConfig } from '../../src/modules/recurring/recurrence-calculator';
 import { format } from 'date-fns';
 

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { History, Filter, Eye, ShieldCheck, RefreshCw } from 'lucide-react';
-import { useTeam } from '../context/TeamContext';
+import { useClient } from '../context/ClientContext';
 import { auditService } from '../services/audit.service';
 import { AuditLog, AuditAction } from '../types/audit.types';
 import { Card } from '../components/ui/Card';
@@ -10,7 +10,7 @@ import { Modal } from '../components/ui/Modal';
 import { formatDate } from '../utils/formatters';
 
 export const AuditLogPage: React.FC = () => {
-  const { currentTeam } = useTeam();
+  const { currentClient } = useClient();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntity, setSelectedEntity] = useState('');
@@ -21,7 +21,7 @@ export const AuditLogPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await auditService.getAuditLogs({
-        teamId: currentTeam?.id,
+        clientId: currentClient?.id,
         entityType: selectedEntity || undefined,
         action: (selectedAction as AuditAction) || undefined,
       });
@@ -35,7 +35,7 @@ export const AuditLogPage: React.FC = () => {
 
   useEffect(() => {
     loadLogs();
-  }, [currentTeam?.id, selectedEntity, selectedAction]);
+  }, [currentClient?.id, selectedEntity, selectedAction]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -70,7 +70,7 @@ export const AuditLogPage: React.FC = () => {
           <option value="Task">Task Entity</option>
           <option value="WorkflowDefinition">Workflow Engine</option>
           <option value="RecurrenceRule">Recurrence Schedule</option>
-          <option value="Team">Team Workspace</option>
+          <option value="client">client Workspace</option>
           <option value="User">User Profile</option>
         </select>
 

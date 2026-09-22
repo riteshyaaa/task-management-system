@@ -1,4 +1,4 @@
-import { RecurrenceFrequency, DayOfWeek } from '@prisma/client';
+﻿import { RecurrenceFrequency, DayOfWeek } from '@prisma/client';
 import cronParser from 'cron-parser';
 import {
   addDays,

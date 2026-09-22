@@ -1,4 +1,4 @@
-export type SystemRole = 'ADMIN' | 'MANAGER' | 'MEMBER';
+﻿export type SystemRole = 'ADMIN' | 'MANAGER' | 'MEMBER';
 
 export interface User {
   id: string;
@@ -12,8 +12,8 @@ export interface User {
     name: SystemRole;
     permissions: string[];
   };
-  teamMemberships?: {
-    teamId: string;
+  clientMemberships?: {
+    clientId: string;
     teamName: string;
     teamSlug: string;
     role: 'ADMIN' | 'MANAGER' | 'MEMBER';

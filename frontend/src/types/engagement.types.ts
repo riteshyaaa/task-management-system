@@ -1,4 +1,4 @@
-export interface LoginStreak {
+﻿export interface LoginStreak {
   id: string;
   userId: string;
   currentStreak: number;
@@ -10,7 +10,7 @@ export interface LoginStreak {
 
 export interface TaskVelocityMetric {
   id: string;
-  teamId: string;
+  clientId: string;
   periodStart: string;
   periodEnd: string;
   tasksCompleted: number;
@@ -34,7 +34,7 @@ export interface LeaderboardUser {
 }
 
 export interface TeamPerformanceSummary {
-  teamId: string;
+  clientId: string;
   totalMembers: number;
   totalTasks: number;
   completedTasks: number;

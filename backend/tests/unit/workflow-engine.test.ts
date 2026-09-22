@@ -1,4 +1,4 @@
-import { TaskStatus, TransitionConditionType, TeamRole } from '@prisma/client';
+﻿import { TaskStatus, TransitionConditionType, ClientRole } from '@prisma/client';
 import { WorkflowEngine, TransitionContext } from '../../src/modules/workflows/workflow-engine';
 import { prisma } from '../../src/config/database';
 
@@ -26,7 +26,7 @@ jest.mock('../../src/config/database', () => ({
     user: {
       findUnique: jest.fn()
     },
-    teamMember: {
+    clientMember: {
       findUnique: jest.fn()
     },
     $transaction: jest.fn((cb) => cb(prisma))
@@ -87,7 +87,7 @@ describe('WorkflowEngine (Unit Tests)', () => {
     const mockFromState = { id: 's1', name: 'Review' };
     const mockToState = { id: 's2', name: 'Approved' };
 
-    it('should PASS if user has required role in teamMember', async () => {
+    it('should PASS if user has required role in clientMember', async () => {
       const condition = {
         conditionType: TransitionConditionType.ROLE_CHECK,
         config: { allowedRoles: ['MAINTAINER', 'OWNER'] }
@@ -96,7 +96,7 @@ describe('WorkflowEngine (Unit Tests)', () => {
       const context: TransitionContext = {
         task: mockTask,
         user: { id: 'u1', userRoles: [] },
-        teamMember: { role: TeamRole.MAINTAINER },
+        clientMember: { role: ClientRole.MAINTAINER },
         fromState: mockFromState,
         toState: mockToState,
         transition: { id: 't1' }
@@ -115,7 +115,7 @@ describe('WorkflowEngine (Unit Tests)', () => {
       const context: TransitionContext = {
         task: mockTask,
         user: { id: 'u1', userRoles: [{ role: { name: 'ADMIN' } }] },
-        teamMember: { role: TeamRole.MEMBER },
+        clientMember: { role: ClientRole.MEMBER },
         fromState: mockFromState,
         toState: mockToState,
         transition: { id: 't1' }
@@ -135,7 +135,7 @@ describe('WorkflowEngine (Unit Tests)', () => {
       const context: TransitionContext = {
         task: mockTask,
         user: { id: 'u1', userRoles: [{ role: { name: 'MEMBER' } }] },
-        teamMember: { role: TeamRole.MEMBER },
+        clientMember: { role: ClientRole.MEMBER },
         fromState: mockFromState,
         toState: mockToState,
         transition: { id: 't1' }

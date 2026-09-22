@@ -1,4 +1,4 @@
-import { BadRequestError } from '../../shared/errors/app-error';
+﻿import { BadRequestError } from '../../shared/errors/app-error';
 import { CreateWorkflowStateInput, CreateWorkflowTransitionInput } from './workflow.schema';
 
 export interface WorkflowValidationResult {

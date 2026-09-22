@@ -1,10 +1,10 @@
-import { apiClient } from './api.client';
+﻿import { apiClient } from './api.client';
 import { RecurrenceRule } from '../types/recurring.types';
 
 export const recurringService = {
-  async getRecurrenceRules(teamId?: string): Promise<RecurrenceRule[]> {
+  async getRecurrenceRules(clientId?: string): Promise<RecurrenceRule[]> {
     const response = await apiClient.get<{ success: boolean; data: RecurrenceRule[] }>('/recurring', {
-      params: { teamId },
+      params: { clientId },
     });
     return response.data.data || [];
   },

@@ -1,4 +1,4 @@
-import { Prisma, TaskStatus, TaskPriority } from '@prisma/client';
+﻿import { Prisma, TaskStatus, TaskPriority } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { startOfDay, endOfDay, addDays } from 'date-fns';
 
@@ -7,13 +7,13 @@ export class DashboardService {
    * Returns an overview matching the frontend DashboardOverviewData shape:
    *   { counts, priorityDistribution, recentActivities }
    */
-  async getOverview(userId: string, teamId?: string) {
+  async getOverview(userId: string, clientId?: string) {
     const now = new Date();
     const dueSoonCutoff = addDays(now, 3);
 
     const baseWhere: Prisma.TaskWhereInput = {
       isDeleted: false,
-      ...(teamId ? { teamId } : {}),
+      ...(clientId ? { clientId } : {}),
     };
 
     const [
@@ -55,7 +55,7 @@ export class DashboardService {
       prisma.task.count({ where: { ...baseWhere, priority: TaskPriority.URGENT } }),
       prisma.userActivityLog.findMany({
         where: {
-          ...(teamId ? { teamId } : { userId }),
+          ...(clientId ? { clientId } : { userId }),
         },
         take: 10,
         orderBy: { createdAt: 'desc' },

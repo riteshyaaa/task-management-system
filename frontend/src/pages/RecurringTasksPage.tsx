@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Repeat, Plus, Play, Clock, ToggleLeft, ToggleRight } from 'lucide-react';
-import { useTeam } from '../context/TeamContext';
+import { useClient } from '../context/ClientContext';
 import { useToast } from '../context/ToastContext';
 import { recurringService } from '../services/recurring.service';
 import { templateService } from '../services/template.service';
@@ -14,7 +14,7 @@ import { Input } from '../components/ui/Input';
 import { formatDate } from '../utils/formatters';
 
 export const RecurringTasksPage: React.FC = () => {
-  const { currentTeam } = useTeam();
+  const { currentClient } = useClient();
   const { showToast } = useToast();
 
   const [rules, setRules] = useState<RecurrenceRule[]>([]);
@@ -32,7 +32,7 @@ export const RecurringTasksPage: React.FC = () => {
   const loadRules = async () => {
     try {
       setLoading(true);
-      const data = await recurringService.getRecurrenceRules(currentTeam?.id);
+      const data = await recurringService.getRecurrenceRules(currentClient?.id);
       setRules(data);
     } catch (err) {
       console.error('Failed to load recurrence rules:', err);
@@ -43,13 +43,13 @@ export const RecurringTasksPage: React.FC = () => {
 
   useEffect(() => {
     loadRules();
-    if (currentTeam) {
+    if (currentClient) {
       templateService
-        .getTemplates(currentTeam.id)
+        .getTemplates(currentClient.id)
         .then(setTemplates)
         .catch((err) => console.error('Failed to load templates:', err));
     }
-  }, [currentTeam?.id]);
+  }, [currentClient?.id]);
 
   if (loading) {
     return (
@@ -154,12 +154,12 @@ export const RecurringTasksPage: React.FC = () => {
 
                   <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-400">
                     <span className="font-semibold text-indigo-300">{rule.frequency}</span>
-                    <span>•</span>
+                    <span>â€¢</span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-slate-500" />
                       Next run: {formatDate(rule.nextOccurrenceDate)}
                     </span>
-                    <span>•</span>
+                    <span>â€¢</span>
                     <span>Timezone: {rule.timezone}</span>
                   </div>
                 </div>

@@ -1,7 +1,7 @@
-import React from 'react';
+﻿import React from 'react';
 import { Menu, LogOut, Flame, Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useTeam } from '../../context/TeamContext';
+import { useClient } from '../../context/ClientContext';
 import { Button } from '../ui/Button';
 
 interface HeaderProps {
@@ -11,7 +11,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onMenuClick, onNewTaskClick }) => {
   const { user, logout } = useAuth();
-  const { currentTeam } = useTeam();
+  const { currentClient } = useClient();
 
   return (
     <header className="h-16 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
@@ -24,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, onNewTaskClick }) =
         </button>
         <div>
           <h2 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
-            {currentTeam?.name || 'Workspace'}
+            {currentClient?.name || 'Workspace'}
           </h2>
           <p className="text-[11px] text-slate-400">Collaborative Workflow Engine</p>
         </div>

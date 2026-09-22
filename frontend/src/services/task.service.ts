@@ -1,8 +1,8 @@
-import { apiClient } from './api.client';
+﻿import { apiClient } from './api.client';
 import { CreateTaskPayload, Task, TaskComment, UpdateTaskPayload } from '../types/task.types';
 
 export interface TaskQueryParams {
-  teamId: string;
+  clientId: string;
   status?: string;
   priority?: string;
   assigneeId?: string;
@@ -31,10 +31,10 @@ export const taskService = {
     return response.data.data;
   },
 
-  async createTask(teamId: string, payload: CreateTaskPayload): Promise<Task> {
+  async createTask(clientId: string, payload: CreateTaskPayload): Promise<Task> {
     const response = await apiClient.post<{ success: boolean; data: Task }>('/tasks', {
       ...payload,
-      teamId,
+      clientId,
     });
     return response.data.data;
   },
@@ -48,8 +48,8 @@ export const taskService = {
     await apiClient.delete(`/tasks/${taskId}`);
   },
 
-  async reorderTasks(teamId: string, taskIds: string[]): Promise<void> {
-    await apiClient.post('/tasks/reorder', { teamId, taskIds });
+  async reorderTasks(clientId: string, taskIds: string[]): Promise<void> {
+    await apiClient.post('/tasks/reorder', { clientId, taskIds });
   },
 
   // Subtasks

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { workflowService } from './workflow.service';
 import { sendCreated, sendSuccess } from '../../shared/utils/response.util';
 import { UnauthorizedError } from '../../shared/errors/app-error';
@@ -16,8 +16,8 @@ export class WorkflowController {
 
   async listWorkflows(req: Request, res: Response, next: NextFunction) {
     try {
-      const teamId = req.query.teamId as string;
-      const workflows = await workflowService.listWorkflows(teamId);
+      const clientId = req.query.clientId as string;
+      const workflows = await workflowService.listWorkflows(clientId);
       return sendSuccess(res, workflows);
     } catch (error) {
       next(error);

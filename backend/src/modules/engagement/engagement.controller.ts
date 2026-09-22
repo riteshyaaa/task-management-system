@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { engagementService } from './engagement.service';
 import { sendSuccess, sendCreated } from '../../shared/utils/response.util';
 import { UnauthorizedError } from '../../shared/errors/app-error';
@@ -37,9 +37,9 @@ export class EngagementController {
 
   async getLeaderboard(req: Request, res: Response, next: NextFunction) {
     try {
-      const teamId = req.query.teamId as string | undefined;
+      const clientId = req.query.clientId as string | undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
-      const leaderboard = await engagementService.getLeaderboard(teamId, limit);
+      const leaderboard = await engagementService.getLeaderboard(clientId, limit);
       return sendSuccess(res, leaderboard, 'Leaderboard retrieved');
     } catch (error) {
       next(error);
@@ -48,8 +48,8 @@ export class EngagementController {
 
   async getVelocityMetrics(req: Request, res: Response, next: NextFunction) {
     try {
-      const { teamId, periodType, limit } = req.query as unknown as VelocityQuery;
-      const metrics = await engagementService.getVelocityMetrics(teamId, periodType, limit);
+      const { clientId, periodType, limit } = req.query as unknown as VelocityQuery;
+      const metrics = await engagementService.getVelocityMetrics(clientId, periodType, limit);
       return sendSuccess(res, metrics, 'Velocity metrics retrieved');
     } catch (error) {
       next(error);
@@ -58,9 +58,9 @@ export class EngagementController {
 
   async computeVelocityMetrics(req: Request, res: Response, next: NextFunction) {
     try {
-      const { teamId, periodType, periodStart } = req.body;
+      const { clientId, periodType, periodStart } = req.body;
       const metric = await engagementService.computeVelocityMetrics(
-        teamId,
+        clientId,
         periodType,
         periodStart ? new Date(periodStart) : undefined
       );
@@ -70,11 +70,11 @@ export class EngagementController {
     }
   }
 
-  async getTeamPerformanceMetrics(req: Request, res: Response, next: NextFunction) {
+  async getclientPerformanceMetrics(req: Request, res: Response, next: NextFunction) {
     try {
-      const { teamId, periodType, userId } = req.query as unknown as PerformanceQuery;
-      const metrics = await engagementService.getTeamPerformanceMetrics(teamId, periodType, userId);
-      return sendSuccess(res, metrics, 'Team performance metrics retrieved');
+      const { clientId, periodType, userId } = req.query as unknown as PerformanceQuery;
+      const metrics = await engagementService.getclientPerformanceMetrics(clientId, periodType, userId);
+      return sendSuccess(res, metrics, 'client performance metrics retrieved');
     } catch (error) {
       next(error);
     }
@@ -82,13 +82,13 @@ export class EngagementController {
 
   async computeTeamPerformance(req: Request, res: Response, next: NextFunction) {
     try {
-      const { teamId, periodType, periodStart } = req.body;
+      const { clientId, periodType, periodStart } = req.body;
       const metrics = await engagementService.computeTeamPerformance(
-        teamId,
+        clientId,
         periodType,
         periodStart ? new Date(periodStart) : undefined
       );
-      return sendCreated(res, metrics, 'Team performance metrics computed and recorded');
+      return sendCreated(res, metrics, 'client performance metrics computed and recorded');
     } catch (error) {
       next(error);
     }
@@ -97,8 +97,8 @@ export class EngagementController {
   async getDashboardSummary(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) throw new UnauthorizedError('Authentication required');
-      const teamId = req.query.teamId as string | undefined;
-      const summary = await engagementService.getDashboardSummary(req.user.id, teamId);
+      const clientId = req.query.clientId as string | undefined;
+      const summary = await engagementService.getDashboardSummary(req.user.id, clientId);
       return sendSuccess(res, summary, 'Dashboard summary retrieved');
     } catch (error) {
       next(error);

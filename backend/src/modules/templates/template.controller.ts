@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { templateService } from './template.service';
 import { sendCreated, sendSuccess } from '../../shared/utils/response.util';
 import { UnauthorizedError } from '../../shared/errors/app-error';
@@ -16,8 +16,8 @@ export class TemplateController {
 
   async listTemplates(req: Request, res: Response, next: NextFunction) {
     try {
-      const teamId = req.query.teamId as string;
-      const templates = await templateService.listTemplates(teamId);
+      const clientId = req.query.clientId as string;
+      const templates = await templateService.listTemplates(clientId);
       return sendSuccess(res, templates);
     } catch (error) {
       next(error);

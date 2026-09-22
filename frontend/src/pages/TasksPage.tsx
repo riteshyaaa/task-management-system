@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
@@ -12,7 +12,7 @@ import {
   CheckSquare,
   Layers,
 } from 'lucide-react';
-import { useTeam } from '../context/TeamContext';
+import { useClient } from '../context/ClientContext';
 import { useToast } from '../context/ToastContext';
 import { taskService } from '../services/task.service';
 import { templateService } from '../services/template.service';
@@ -32,7 +32,7 @@ const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
 ];
 
 export const TasksPage: React.FC = () => {
-  const { currentTeam, teamMembers } = useTeam();
+  const { currentClient, clientMembers } = useClient();
   const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -71,10 +71,10 @@ export const TasksPage: React.FC = () => {
 
   // Load tasks & templates
   const loadTasks = async () => {
-    if (!currentTeam) return;
+    if (!currentClient) return;
     try {
       setLoading(true);
-      const res = await taskService.getTasks({ teamId: currentTeam.id, limit: 100 });
+      const res = await taskService.getTasks({ clientId: currentClient.id, limit: 100 });
       setTasks(res.tasks);
     } catch (err) {
       console.error('Failed to load tasks:', err);
@@ -86,13 +86,13 @@ export const TasksPage: React.FC = () => {
 
   useEffect(() => {
     loadTasks();
-    if (currentTeam) {
+    if (currentClient) {
       templateService
-        .getTemplates(currentTeam.id)
+        .getTemplates(currentClient.id)
         .then(setTemplates)
         .catch((err) => console.error('Failed to load templates:', err));
     }
-  }, [currentTeam?.id]);
+  }, [currentClient?.id]);
 
   // Handle Template selection change
   const handleTemplateSelect = (templateId: string) => {
@@ -116,21 +116,21 @@ export const TasksPage: React.FC = () => {
   // Create Task Submission
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentTeam || !newTaskTitle.trim()) return;
+    if (!currentClient || !newTaskTitle.trim()) return;
 
     try {
       setSubmitting(true);
       if (selectedTemplateId) {
         // Instantiate template
         await templateService.instantiateTemplate(selectedTemplateId, {
-          teamId: currentTeam.id,
+          clientId: currentClient.id,
           variables: templateVariables,
           assigneeId: newTaskAssigneeId || undefined,
           dueDate: newTaskDueDate || undefined,
         });
         showToast('Task generated from template successfully!', 'success');
       } else {
-        await taskService.createTask(currentTeam.id, {
+        await taskService.createTask(currentClient.id, {
           title: newTaskTitle,
           description: newTaskDescription,
           priority: newTaskPriority,
@@ -430,7 +430,7 @@ export const TasksPage: React.FC = () => {
                           }}
                           className="px-2 py-0.5 rounded text-[9px] font-semibold bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white transition-colors"
                         >
-                          → {targetCol.label}
+                          â†’ {targetCol.label}
                         </button>
                       ))}
                     </div>
@@ -543,7 +543,7 @@ export const TasksPage: React.FC = () => {
                 className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-slate-100"
               >
                 <option value="">Unassigned</option>
-                {teamMembers.map((m) => (
+                {clientMembers.map((m) => (
                   <option key={m.userId} value={m.userId}>
                     {m.user?.firstName || 'Member'} {m.user?.lastName || ''}
                   </option>

@@ -31,7 +31,7 @@ The **Enterprise Task Management & Workflow Automation System** is a distributed
 │                                             Node.js Express TypeScript API Server                                       │
 │                                                                                                                         │
 │  ┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐  ┌─────────────────────────────────────┐  │
-│  │  Security Middleware │  │  JWT Auth & RBAC     │  │  Team ABAC Tenancy   │  │  RFC 7807 Centralized Error Handler │  │
+│  │  Security Middleware │  │  JWT Auth & RBAC     │  │  Client ABAC Tenancy │  │  RFC 7807 Centralized Error Handler │  │
 │  │  (Helmet, RateLimit) │  │  (Dual-Token Engine) │  │  (Workspace Isolation│  │  (AppError & Zod Validation)        │  │
 │  └──────────┬───────────┘  └──────────┬───────────┘  └──────────┬───────────┘  └──────────────────┬──────────────────┘  │
 │             │                         │                         │                                 │                     │
@@ -75,14 +75,14 @@ The underlying database schema consists of **30 interconnected models** engineer
             │1                                                                │1
             │*                                                                │*
  ┌──────────▼───────────┐         ┌──────────────────────┐         ┌──────────▼───────────┐
- │     RefreshToken     │         │      TeamMember      │*       1│    RolePermission    │
+ │     RefreshToken     │         │     ClientMember     │*       1│    RolePermission    │
  │ (Cryptographic Hash) │         │ (OWNER, MAINTAINER)  ├─────────┤  (Granular Matrix)   │
  └──────────────────────┘         └──────────▲───────────┘         └──────────────────────┘
                                              │*
                                              │1
  ┌──────────────────────┐         ┌──────────┴───────────┐         ┌──────────────────────┐
  │     Workspace /      │1       *│        Task          │1       *│       Subtask        │
- │        Team          ├─────────┤ (OCC Version Column, ├─────────┤  (Hierarchy Tree)    │
+ │        Client        ├─────────┤ (OCC Version Column, ├─────────┤  (Hierarchy Tree)    │
  └──────────┬───────────┘         │  Priority, Status)   │         └──────────────────────┘
             │1                    └──────────┬───────────┘
             │*                               │1
@@ -107,7 +107,7 @@ The underlying database schema consists of **30 interconnected models** engineer
    - `AuditLog` stores `oldValues`, `newValues`, and `changedFields` as binary JSON (`jsonb`).
    - GIN indexing enables instant sub-millisecond filtering across arbitrarily nested property mutations.
 3. **Compound Indexes**:
-   - `@@index([teamId, status, priority])` on `Task` ensures performant Kanban filtering across millions of records.
+   - `@@index([clientId, status, priority])` on `Task` ensures performant Kanban filtering across millions of records.
    - `@@index([userId, expiresAt, isRevoked])` on `RefreshToken` accelerates token rotation and validation pipelines.
 
 ---
@@ -128,7 +128,7 @@ Tampering with Data       - Optimistic Concurrency Control (OCC) prevents race c
 Repudiation               - Comprehensive audit subsystem records actor ID, IP address, user agent,
                             timestamps, and exact pre/post JSONB mutation diffs for all writes.
 --------------------------------------------------------------------------------------------------
-Information Disclosure    - Workspace-level ABAC (`abac-team.middleware.ts`) isolates multi-tenant data.
+Information Disclosure    - Workspace-level ABAC (`abac-client.middleware.ts`) isolates multi-tenant data.
                           - Passwords hashed using bcrypt with salt cost factor of 12.
                           - Sensitive token signatures never logged to Winston / Morgan output streams.
 --------------------------------------------------------------------------------------------------
@@ -210,7 +210,7 @@ The workflow engine enforces strict lifecycle pipelines on tasks using customiza
 2. **Terminal Node Enforcement**: At least one node has `isTerminal = true`; terminal nodes are strictly prohibited from having outbound transitions (`transitions.length === 0`).
 3. **Graph Reachability**: Breadth-First Search (BFS) starting from the initial state traverses all adjacency lists. Unreachable states trigger validation rejection.
 4. **Guard Condition Evaluation Pipeline**:
-   - `ROLE_CHECK`: Verifies acting user has sufficient team workspace role (`OWNER`, `MAINTAINER`, `MEMBER`).
+   - `ROLE_CHECK`: Verifies acting user has sufficient client workspace role (`OWNER`, `MAINTAINER`, `MEMBER`).
    - `ALL_SUBTASKS_COMPLETED`: Inspects associated `subtasks` array, ensuring `status === 'COMPLETED'` on all children.
    - `HAS_ASSIGNEE`: Validates `task.assigneeId !== null`.
    - `FIELD_VALUE`: Evaluates dynamic field equality predicates against current task attributes.
@@ -298,7 +298,7 @@ The audit engine tracks every write operation across the entire platform.
   "entityId": "task_cl93849102",
   "action": "UPDATE",
   "userId": "user_cl91823712",
-  "teamId": "team_cl81726354",
+  "clientId": "client_cl81726354",
   "ipAddress": "192.168.1.104",
   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
   "oldValues": {
@@ -324,7 +324,7 @@ The audit engine tracks every write operation across the entire platform.
 
 ## 8. Gamification & Engagement Subsystem
 
-The gamification engine calculates consecutive calendar-day login streaks, velocity points, and team leaderboards.
+The gamification engine calculates consecutive calendar-day login streaks, velocity points, and client leaderboards.
 
 ```
 Day 1: User Logins ───────> Streak = 1 (LastLogin: Day 1)
@@ -347,4 +347,4 @@ Day 5: User Logins ───────> Streak = 1 (48h+ Inactivity Reset)
    - REST API is completely stateless; JWT verification is decentralized, allowing horizontal auto-scaling behind an AWS ALB or Nginx load balancer.
 4. **Horizontal Scalability Roadmap**:
    - Ingest audit events asynchronously via Redis Streams / Apache Kafka.
-   - Introduce Redis read-through caching for team workspaces and workflow definition graphs.
+   - Introduce Redis read-through caching for client workspaces and workflow definition graphs.

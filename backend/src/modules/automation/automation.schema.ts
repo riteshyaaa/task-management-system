@@ -1,4 +1,4 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 import { RuleTriggerType } from '@prisma/client';
 
 export enum RuleActionType {
@@ -21,7 +21,7 @@ export const ruleActionSchema = z.object({
 });
 
 export const createAutomationRuleSchema = z.object({
-  teamId: z.string().uuid('Invalid team ID'),
+  clientId: z.string().uuid('Invalid client ID'),
   name: z.string().min(1, 'Rule name is required').max(128).trim(),
   description: z.string().optional().nullable(),
   triggerType: z.nativeEnum(RuleTriggerType),

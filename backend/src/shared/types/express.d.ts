@@ -1,4 +1,4 @@
-import { RoleName, TeamRole } from '@prisma/client';
+﻿import { RoleName, ClientRole } from '@prisma/client';
 
 export interface AuthenticatedUser {
   id: string;
@@ -20,9 +20,9 @@ declare global {
   namespace Express {
     interface Request {
       user?: AuthenticatedUser;
-      teamMembership?: {
-        teamId: string;
-        role: TeamRole;
+      clientMembership?: {
+        clientId: string;
+        role: ClientRole;
       };
       auditContext?: AuditContext;
     }

@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+﻿import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { RoleName, ActivityType } from '@prisma/client';
 import { prisma } from '../../config/database';
@@ -273,7 +273,7 @@ export class AuthService {
 
     // REUSE DETECTION: If this token was already revoked, someone may have compromised the family!
     if (tokenRecord.isRevoked) {
-      logger.warn(`🚨 REUSE DETECTION TRIGGERED: Revoked token reused for user ${payload.userId}, family ${payload.family}. Invalidating family.`);
+      logger.warn(`ðŸš¨ REUSE DETECTION TRIGGERED: Revoked token reused for user ${payload.userId}, family ${payload.family}. Invalidating family.`);
       await prisma.refreshToken.updateMany({
         where: { familyId: payload.family },
         data: { isRevoked: true }
@@ -439,10 +439,10 @@ export class AuthService {
       where: { userId }
     });
 
-    const memberships = await prisma.teamMember.findMany({
+    const memberships = await prisma.clientMember.findMany({
       where: { userId },
       include: {
-        team: {
+        client: {
           select: {
             id: true,
             name: true,
@@ -469,11 +469,11 @@ export class AuthService {
             lastActiveDate: streak.lastActiveDate
           }
         : null,
-      teams: memberships.map(tm => ({
-        id: tm.team.id,
-        name: tm.team.name,
-        slug: tm.team.slug,
-        description: tm.team.description,
+      clients: memberships.map(tm => ({
+        id: tm.client.id,
+        name: tm.client.name,
+        slug: tm.client.slug,
+        description: tm.client.description,
         role: tm.role
       }))
     };

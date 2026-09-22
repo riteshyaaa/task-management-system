@@ -1,4 +1,4 @@
-import { RoleName, Prisma } from '@prisma/client';
+﻿import { RoleName, Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { NotFoundError, BadRequestError } from '../../shared/errors/app-error';
 import { ListUsersQuery, UpdateUserInput, AssignRolesInput } from './user.schema';
@@ -115,9 +115,9 @@ export class UserService {
           }
         },
         loginStreak: true,
-        teamMembers: {
+        clientMembers: {
           include: {
-            team: {
+            client: {
               select: {
                 id: true,
                 name: true,
@@ -134,10 +134,10 @@ export class UserService {
     return {
       ...user,
       roles: user.userRoles.map(ur => ur.role.name),
-      teams: user.teamMembers.map(tm => ({
-        id: tm.team.id,
-        name: tm.team.name,
-        slug: tm.team.slug,
+      clients: user.clientMembers.map(tm => ({
+        id: tm.client.id,
+        name: tm.client.name,
+        slug: tm.client.slug,
         role: tm.role
       }))
     };

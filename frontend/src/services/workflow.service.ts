@@ -1,10 +1,10 @@
-import { apiClient } from './api.client';
+﻿import { apiClient } from './api.client';
 import { TransitionHistoryItem, WorkflowDefinition } from '../types/workflow.types';
 
 export const workflowService = {
-  async getWorkflows(teamId: string): Promise<WorkflowDefinition[]> {
+  async getWorkflows(clientId: string): Promise<WorkflowDefinition[]> {
     const response = await apiClient.get<{ success: boolean; data: WorkflowDefinition[] }>(`/workflows`, {
-      params: { teamId },
+      params: { clientId },
     });
     return response.data.data || [];
   },
@@ -15,7 +15,7 @@ export const workflowService = {
   },
 
   async createWorkflow(payload: {
-    teamId: string;
+    clientId: string;
     name: string;
     description?: string;
     states: { name: string; color: string; isInitial?: boolean; isTerminal?: boolean; positionX?: number; positionY?: number }[];

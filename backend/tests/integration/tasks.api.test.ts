@@ -1,4 +1,4 @@
-import request from 'supertest';
+﻿import request from 'supertest';
 import { createApp } from '../../src/app';
 import { prisma } from '../../src/config/database';
 import { clearDatabase, seedTestRoles } from '../setup';
@@ -8,7 +8,7 @@ describe('Tasks API & OCC (Integration Tests)', () => {
   const app = createApp();
   let authToken: string;
   let userId: string;
-  let teamId: string;
+  let clientId: string;
 
   beforeAll(async () => {
     await clearDatabase();
@@ -27,17 +27,17 @@ describe('Tasks API & OCC (Integration Tests)', () => {
     authToken = regRes.body.data.tokens.accessToken;
     userId = regRes.body.data.user.id;
 
-    // Create a team workspace
+    // Create a client workspace
     const teamRes = await request(app)
-      .post('/api/v1/teams')
+      .post('/api/v1/clients')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
-        name: 'Engineering Team',
-        slug: 'engineering-team',
+        name: 'Engineering client',
+        slug: 'engineering-client',
         description: 'Primary workspace'
       });
 
-    teamId = teamRes.body.data.id;
+    clientId = teamRes.body.data.id;
   });
 
   afterAll(async () => {
@@ -58,7 +58,7 @@ describe('Tasks API & OCC (Integration Tests)', () => {
           description: 'Support Google and GitHub SSO',
           status: TaskStatus.TODO,
           priority: TaskPriority.HIGH,
-          teamId
+          clientId
         });
 
       expect(res.status).toBe(201);

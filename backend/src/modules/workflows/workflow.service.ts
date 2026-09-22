@@ -1,4 +1,4 @@
-import { Prisma, WorkflowStatus } from '@prisma/client';
+﻿import { Prisma, WorkflowStatus } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { NotFoundError, BadRequestError, ConflictError } from '../../shared/errors/app-error';
 import {
@@ -21,7 +21,7 @@ export class WorkflowService {
     // 2. Check for duplicate name
     const existing = await prisma.workflowDefinition.findFirst({
       where: {
-        teamId: input.teamId,
+        clientId: input.clientId,
         name: input.name,
         status: { not: WorkflowStatus.ARCHIVED }
       }
@@ -29,7 +29,7 @@ export class WorkflowService {
 
     if (existing) {
       throw new ConflictError(
-        `An active workflow named '${input.name}' already exists in this team workspace`
+        `An active workflow named '${input.name}' already exists in this client workspace`
       );
     }
 
@@ -38,7 +38,7 @@ export class WorkflowService {
       // Create WorkflowDefinition
       const def = await tx.workflowDefinition.create({
         data: {
-          teamId: input.teamId,
+          clientId: input.clientId,
           name: input.name,
           description: input.description,
           status: WorkflowStatus.ACTIVE,
@@ -131,10 +131,10 @@ export class WorkflowService {
     return this.getWorkflowById(workflow.id);
   }
 
-  async listWorkflows(teamId: string) {
+  async listWorkflows(clientId: string) {
     const workflows = await prisma.workflowDefinition.findMany({
       where: {
-        teamId,
+        clientId,
         status: { not: WorkflowStatus.ARCHIVED }
       },
       orderBy: { createdAt: 'desc' },
@@ -225,8 +225,8 @@ export class WorkflowService {
     });
 
     if (!workflow) throw new NotFoundError('Workflow definition not found');
-    if (workflow.teamId !== task.teamId) {
-      throw new BadRequestError('Workflow does not belong to the same team as the task');
+    if (workflow.clientId !== task.clientId) {
+      throw new BadRequestError('Workflow does not belong to the same client as the task');
     }
 
     const initialState = workflow.states.find((s) => s.isInitial);

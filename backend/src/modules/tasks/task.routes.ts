@@ -1,8 +1,8 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { taskController } from './task.controller';
 import commentRouter from '../comments/comment.routes';
 import { authenticate } from '../../middleware/auth.middleware';
-import { requireTeamMember } from '../../middleware/abac-team.middleware';
+import { requireClientMember } from '../../middleware/abac-client.middleware';
 import { requirePermission } from '../../middleware/rbac.middleware';
 import { validate } from '../../middleware/validate.middleware';
 import {
@@ -24,7 +24,7 @@ router.use('/:taskId/comments', commentRouter);
 router.post(
   '/',
   requirePermission('tasks:create'),
-  requireTeamMember(),
+  requireClientMember(),
   validate({ body: createTaskSchema }),
   taskController.createTask
 );
@@ -32,7 +32,7 @@ router.post(
 router.get(
   '/',
   requirePermission('tasks:read'),
-  requireTeamMember(),
+  requireClientMember(),
   validate({ query: filterTasksQuerySchema }),
   taskController.listTasks
 );
@@ -40,7 +40,7 @@ router.get(
 router.post(
   '/reorder',
   requirePermission('tasks:update'),
-  requireTeamMember(),
+  requireClientMember(),
   validate({ body: reorderTaskSchema }),
   taskController.reorderTask
 );

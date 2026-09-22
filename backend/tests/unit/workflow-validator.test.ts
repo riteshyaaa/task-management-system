@@ -1,4 +1,4 @@
-import { WorkflowValidator } from '../../src/modules/workflows/workflow-validator';
+﻿import { WorkflowValidator } from '../../src/modules/workflows/workflow-validator';
 import { BadRequestError } from '../../src/shared/errors/app-error';
 
 describe('WorkflowValidator (Unit Tests)', () => {

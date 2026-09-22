@@ -1,4 +1,4 @@
-import { AuditOperation, RetentionAction, Prisma } from '@prisma/client';
+﻿import { AuditOperation, RetentionAction, Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { FilterAuditLogsQuery, RetentionPolicyInput, UpdateRetentionPolicyInput } from './audit.schema';
 import { NotFoundError } from '../../shared/errors/app-error';

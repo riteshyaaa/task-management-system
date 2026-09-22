@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { FileCode2, Plus, Zap, CheckSquare, Sparkles, ToggleLeft, ToggleRight, ArrowRight } from 'lucide-react';
-import { useTeam } from '../context/TeamContext';
+import { useClient } from '../context/ClientContext';
 import { useToast } from '../context/ToastContext';
 import { templateService } from '../services/template.service';
 import { AutomationRule, TaskTemplate } from '../types/template.types';
@@ -11,7 +11,7 @@ import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 
 export const TemplatesPage: React.FC = () => {
-  const { currentTeam } = useTeam();
+  const { currentClient } = useClient();
   const { showToast } = useToast();
 
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
@@ -34,12 +34,12 @@ export const TemplatesPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const loadData = async () => {
-    if (!currentTeam) return;
+    if (!currentClient) return;
     try {
       setLoading(true);
       const [tplData, ruleData] = await Promise.all([
-        templateService.getTemplates(currentTeam.id),
-        templateService.getAutomationRules(currentTeam.id),
+        templateService.getTemplates(currentClient.id),
+        templateService.getAutomationRules(currentClient.id),
       ]);
       setTemplates(tplData);
       setRules(ruleData);
@@ -52,7 +52,7 @@ export const TemplatesPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [currentTeam?.id]);
+  }, [currentClient?.id]);
 
   if (loading) {
     return (
@@ -64,7 +64,7 @@ export const TemplatesPage: React.FC = () => {
 
   const handleCreateTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentTeam || !templateName.trim() || !defaultTitle.trim()) return;
+    if (!currentClient || !templateName.trim() || !defaultTitle.trim()) return;
 
     try {
       setSubmitting(true);
@@ -88,7 +88,7 @@ export const TemplatesPage: React.FC = () => {
         .filter((item) => item.title.length > 0);
 
       await templateService.createTemplate({
-        teamId: currentTeam.id,
+        clientId: currentClient.id,
         name: templateName,
         defaultTitle,
         defaultBody,
@@ -112,12 +112,12 @@ export const TemplatesPage: React.FC = () => {
 
   const handleCreateRule = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentTeam || !ruleName.trim()) return;
+    if (!currentClient || !ruleName.trim()) return;
 
     try {
       setSubmitting(true);
       await templateService.createAutomationRule({
-        teamId: currentTeam.id,
+        clientId: currentClient.id,
         name: ruleName,
         triggerType,
         triggerConfig: { status: 'DONE' },

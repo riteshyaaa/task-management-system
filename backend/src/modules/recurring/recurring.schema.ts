@@ -1,4 +1,4 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 import { RecurrenceFrequency, RecurrenceStatus, DayOfWeek } from '@prisma/client';
 
 export const dayOfWeekEnum = z.nativeEnum(DayOfWeek);
@@ -85,7 +85,7 @@ export const addExceptionDateSchema = z.object({
 });
 
 export const filterRecurrenceRulesQuerySchema = z.object({
-  teamId: z.string().uuid().optional(),
+  clientId: z.string().uuid().optional(),
   status: recurrenceStatusEnum.optional(),
   frequency: recurrenceFrequencyEnum.optional(),
   page: z.coerce.number().int().min(1).default(1),

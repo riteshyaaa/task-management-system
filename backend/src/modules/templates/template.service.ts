@@ -1,4 +1,4 @@
-import { ActivityType, Prisma, TaskPriority, TaskStatus } from '@prisma/client';
+﻿import { ActivityType, Prisma, TaskPriority, TaskStatus } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { NotFoundError, ConflictError, BadRequestError } from '../../shared/errors/app-error';
 import { CreateTemplateInput, UpdateTemplateInput, InstantiateTemplateInput } from './template.schema';
@@ -18,21 +18,21 @@ export class TemplateService {
   async createTemplate(userId: string, input: CreateTemplateInput) {
     const existing = await prisma.taskTemplate.findUnique({
       where: {
-        teamId_name: {
-          teamId: input.teamId,
+        clientId_name: {
+          clientId: input.clientId,
           name: input.name
         }
       }
     });
 
     if (existing) {
-      throw new ConflictError(`Template '${input.name}' already exists in this team workspace`);
+      throw new ConflictError(`Template '${input.name}' already exists in this client workspace`);
     }
 
     const template = await prisma.$transaction(async (tx) => {
       const created = await tx.taskTemplate.create({
         data: {
-          teamId: input.teamId,
+          clientId: input.clientId,
           name: input.name,
           description: input.description,
           defaultTitle: input.defaultTitle,
@@ -66,9 +66,9 @@ export class TemplateService {
     return template;
   }
 
-  async listTemplates(teamId: string) {
+  async listTemplates(clientId: string) {
     const templates = await prisma.taskTemplate.findMany({
-      where: { teamId },
+      where: { clientId },
       orderBy: { name: 'asc' },
       include: {
         templateItems: {
@@ -116,14 +116,14 @@ export class TemplateService {
     if (input.name && input.name !== template.name) {
       const existing = await prisma.taskTemplate.findUnique({
         where: {
-          teamId_name: {
-            teamId: template.teamId,
+          clientId_name: {
+            clientId: template.clientId,
             name: input.name
           }
         }
       });
       if (existing) {
-        throw new ConflictError(`Template '${input.name}' already exists in this team workspace`);
+        throw new ConflictError(`Template '${input.name}' already exists in this client workspace`);
       }
     }
 
@@ -222,7 +222,7 @@ export class TemplateService {
     const generatedTask = await prisma.$transaction(async (tx) => {
       // Find current max position
       const lastTask = await tx.task.findFirst({
-        where: { teamId: template.teamId, status: TaskStatus.TODO, isDeleted: false },
+        where: { clientId: template.clientId, status: TaskStatus.TODO, isDeleted: false },
         orderBy: { position: 'desc' },
         select: { position: true }
       });
@@ -233,7 +233,7 @@ export class TemplateService {
         data: {
           title: taskTitle,
           description: taskDescription,
-          teamId: template.teamId,
+          clientId: template.clientId,
           reporterId: userId,
           assigneeId: input.assigneeId || null,
           status: TaskStatus.TODO,
@@ -262,7 +262,7 @@ export class TemplateService {
             data: {
               title: subtaskTitle,
               description: subtaskDesc || null,
-              teamId: template.teamId,
+              clientId: template.clientId,
               reporterId: userId,
               assigneeId: input.assigneeId || null,
               parentTaskId: task.id,
@@ -297,7 +297,7 @@ export class TemplateService {
         activityType: ActivityType.TASK_CREATE,
         entityType: 'Task',
         entityId: generatedTask.id,
-        teamId: template.teamId,
+        clientId: template.clientId,
         ipAddress: auditContext?.ipAddress,
         metadata: {
           taskNumber: generatedTask.taskNumber,

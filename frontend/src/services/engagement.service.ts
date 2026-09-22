@@ -1,4 +1,4 @@
-import { apiClient } from './api.client';
+﻿import { apiClient } from './api.client';
 import { LeaderboardUser, LoginStreak, TaskVelocityMetric, TeamPerformanceSummary } from '../types/engagement.types';
 
 export const engagementService = {
@@ -7,20 +7,20 @@ export const engagementService = {
     return response.data.data;
   },
 
-  async getLeaderboard(teamId?: string): Promise<LeaderboardUser[]> {
+  async getLeaderboard(clientId?: string): Promise<LeaderboardUser[]> {
     const response = await apiClient.get<{ success: boolean; data: LeaderboardUser[] }>('/engagement/leaderboard', {
-      params: { teamId },
+      params: { clientId },
     });
     return response.data.data || [];
   },
 
-  async getVelocityMetrics(teamId: string): Promise<TaskVelocityMetric[]> {
-    const response = await apiClient.get<{ success: boolean; data: TaskVelocityMetric[] }>(`/engagement/velocity/${teamId}`);
+  async getVelocityMetrics(clientId: string): Promise<TaskVelocityMetric[]> {
+    const response = await apiClient.get<{ success: boolean; data: TaskVelocityMetric[] }>(`/engagement/velocity/${clientId}`);
     return response.data.data || [];
   },
 
-  async getTeamSummary(teamId: string): Promise<TeamPerformanceSummary> {
-    const response = await apiClient.get<{ success: boolean; data: TeamPerformanceSummary }>(`/engagement/teams/${teamId}/summary`);
+  async getTeamSummary(clientId: string): Promise<TeamPerformanceSummary> {
+    const response = await apiClient.get<{ success: boolean; data: TeamPerformanceSummary }>(`/engagement/Clients/${clientId}/summary`);
     return response.data.data;
   },
 };

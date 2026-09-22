@@ -1,10 +1,10 @@
-export type TeamRole = 'ADMIN' | 'MANAGER' | 'MEMBER';
+﻿export type ClientRole = 'ADMIN' | 'MANAGER' | 'MEMBER';
 
-export interface TeamMember {
+export interface clientMember {
   id: string;
-  teamId: string;
+  clientId: string;
   userId: string;
-  role: TeamRole;
+  role: ClientRole;
   joinedAt: string;
   user: {
     id: string;
@@ -15,7 +15,7 @@ export interface TeamMember {
   };
 }
 
-export interface Team {
+export interface client {
   id: string;
   name: string;
   slug: string;
@@ -23,7 +23,7 @@ export interface Team {
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;
-  members?: TeamMember[];
+  members?: clientMember[];
   _count?: {
     members?: number;
     tasks?: number;

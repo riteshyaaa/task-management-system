@@ -1,4 +1,4 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 import { TaskPriority } from '@prisma/client';
 
 export const templateItemSchema = z.object({
@@ -9,7 +9,7 @@ export const templateItemSchema = z.object({
 });
 
 export const createTemplateSchema = z.object({
-  teamId: z.string().uuid('Invalid team ID'),
+  clientId: z.string().uuid('Invalid client ID'),
   name: z.string().min(1, 'Template name is required').max(128).trim(),
   description: z.string().optional().nullable(),
   defaultTitle: z.string().min(1, 'Default title is required').max(255).trim(),

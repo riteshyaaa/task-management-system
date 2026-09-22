@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { labelService } from './label.service';
 import { sendCreated, sendSuccess } from '../../shared/utils/response.util';
 
@@ -14,8 +14,8 @@ export class LabelController {
 
   async listLabels(req: Request, res: Response, next: NextFunction) {
     try {
-      const teamId = req.query.teamId as string;
-      const labels = await labelService.listLabels(teamId);
+      const clientId = req.query.clientId as string;
+      const labels = await labelService.listLabels(clientId);
       return sendSuccess(res, labels);
     } catch (error) {
       next(error);

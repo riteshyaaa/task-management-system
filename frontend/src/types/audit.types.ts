@@ -1,4 +1,4 @@
-export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'STATE_TRANSITION' | 'BULK_UPDATE' | 'BULK_DELETE' | 'LOGIN' | 'LOGOUT';
+﻿export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'STATE_TRANSITION' | 'BULK_UPDATE' | 'BULK_DELETE' | 'LOGIN' | 'LOGOUT';
 
 export interface AuditLog {
   id: string;
@@ -7,7 +7,7 @@ export interface AuditLog {
   action: AuditAction;
   performedById?: string | null;
   impersonatedById?: string | null;
-  teamId?: string | null;
+  clientId?: string | null;
   oldValues?: Record<string, any> | null;
   newValues?: Record<string, any> | null;
   changedFields?: string[] | null;
@@ -30,7 +30,7 @@ export interface AuditQueryParams {
   entityId?: string;
   action?: AuditAction;
   performedById?: string;
-  teamId?: string;
+  clientId?: string;
   startDate?: string;
   endDate?: string;
   page?: number;

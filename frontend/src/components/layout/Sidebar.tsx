@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -13,7 +13,7 @@ import {
   Layers,
   Sparkles,
 } from 'lucide-react';
-import { useTeam } from '../../context/TeamContext';
+import { useClient } from '../../context/ClientContext';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../utils/cn';
 
@@ -23,7 +23,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
-  const { teams, currentTeam, setCurrentTeamId } = useTeam();
+  const { clients, currentClient, setcurrentClientId } = useClient();
   const { user } = useAuth();
 
   const navItems = [
@@ -34,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     { to: '/recurring', label: 'Recurring Tasks', icon: Repeat },
     { to: '/analytics', label: 'Engagement & Streaks', icon: Flame },
     { to: '/audit', label: 'Audit Trail', icon: History },
-    { to: '/team', label: 'Team Members', icon: Users },
+    { to: '/client', label: 'client Members', icon: Users },
   ];
 
   return (
@@ -66,19 +66,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
           </div>
         </div>
 
-        {/* Team Switcher */}
+        {/* client Switcher */}
         <div className="p-4 border-b border-slate-800/80">
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">
             Workspace
           </label>
           <div className="relative">
             <select
-              value={currentTeam?.id || ''}
-              onChange={(e) => setCurrentTeamId(e.target.value)}
+              value={currentClient?.id || ''}
+              onChange={(e) => setcurrentClientId(e.target.value)}
               className="w-full appearance-none bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 pr-8 transition-colors cursor-pointer"
             >
-              {teams.length === 0 && <option value="">No Team Available</option>}
-              {teams.map((t) => (
+              {clients.length === 0 && <option value="">No client Available</option>}
+              {clients.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>
