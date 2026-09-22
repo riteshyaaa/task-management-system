@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { Users, UserPlus, Trash2, Crown } from 'lucide-react';
 import { useClient } from '../context/ClientContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { clientService } from '../services/client.service';
 import { clientMember, ClientRole } from '../types/client.types';
@@ -13,9 +14,14 @@ import { formatDate } from '../utils/formatters';
 
 export const ClientPage: React.FC = () => {
   const { currentClient } = useClient();
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [members, setMembers] = useState<clientMember[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const isAdmin =
+    user?.role?.name === 'ADMIN' ||
+    (user as any)?.roles?.includes('ADMIN');
 
   // Invite Member Modal
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -87,16 +93,18 @@ export const ClientPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            client Workspace & Access Control <Users className="w-5 h-5 text-indigo-400" />
+            Client Workspace & Access Control <Users className="w-5 h-5 text-indigo-400" />
           </h1>
           <p className="text-xs text-slate-400">
             Manage multi-tenant workspace members, granular RBAC assignments, and client settings
           </p>
         </div>
 
-        <Button variant="primary" leftIcon={<UserPlus className="w-4 h-4" />} onClick={() => setIsInviteOpen(true)}>
-          Invite Member
-        </Button>
+        {isAdmin && (
+          <Button variant="primary" leftIcon={<UserPlus className="w-4 h-4" />} onClick={() => setIsInviteOpen(true)}>
+            Invite Member
+          </Button>
+        )}
       </div>
 
       {/* Workspace Profile Card */}
@@ -177,13 +185,17 @@ export const ClientPage: React.FC = () => {
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-400">{formatDate(member.joinedAt)}</td>
                   <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={() => handleRemoveMember(member.userId || member.user?.id)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                      title="Remove Member"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {isAdmin ? (
+                      <button
+                        onClick={() => handleRemoveMember(member.userId || member.user?.id)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        title="Remove Member"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <span className="text-slate-600 font-mono text-[11px]">-</span>
+                    )}
                   </td>
                 </tr>
               ))}

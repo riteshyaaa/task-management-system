@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { clientController } from './client.controller';
 import { authenticate } from '../../middleware/auth.middleware';
 import { requireClientMember } from '../../middleware/abac-client.middleware';
-import { requirePermission } from '../../middleware/rbac.middleware';
+import { requirePermission, requireRole } from '../../middleware/rbac.middleware';
 import { validate } from '../../middleware/validate.middleware';
 import {
   createClientSchema,
@@ -10,7 +10,7 @@ import {
   addClientMemberSchema,
   updateClientMemberSchema
 } from './client.schema';
-import { ClientRole } from '@prisma/client';
+import { ClientRole, RoleName } from '@prisma/client';
 
 const router = Router();
 
@@ -48,7 +48,7 @@ router.delete(
   clientController.archiveClient
 );
 
-// Client Membership Management
+// Client Membership Management (Strictly ADMIN only for mutations)
 router.get(
   '/:clientId/members',
   requireClientMember(),
@@ -57,21 +57,21 @@ router.get(
 
 router.post(
   '/:clientId/members',
-  requireClientMember([ClientRole.OWNER, ClientRole.MAINTAINER]),
+  requireRole(RoleName.ADMIN),
   validate({ body: addClientMemberSchema }),
   clientController.addMember
 );
 
 router.patch(
   '/:clientId/members/:userId',
-  requireClientMember([ClientRole.OWNER]),
+  requireRole(RoleName.ADMIN),
   validate({ body: updateClientMemberSchema }),
   clientController.updateMemberRole
 );
 
 router.delete(
   '/:clientId/members/:userId',
-  requireClientMember([ClientRole.OWNER, ClientRole.MAINTAINER]),
+  requireRole(RoleName.ADMIN),
   clientController.removeMember
 );
 

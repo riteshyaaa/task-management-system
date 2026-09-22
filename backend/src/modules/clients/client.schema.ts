@@ -17,10 +17,18 @@ export const updateClientSchema = z.object({
   description: z.string().max(500).optional()
 });
 
-export const addClientMemberSchema = z.object({
-  userId: z.string().uuid('Invalid user ID format'),
-  role: z.nativeEnum(ClientRole).default(ClientRole.MEMBER)
-});
+export const addClientMemberSchema = z
+  .object({
+    userId: z.string().uuid('Invalid user ID format').optional(),
+    email: z.string().email('Invalid email address').optional(),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    password: z.string().min(6).optional(),
+    role: z.nativeEnum(ClientRole).default(ClientRole.MEMBER)
+  })
+  .refine((data) => data.userId || data.email, {
+    message: 'Either userId or email must be provided to add a member'
+  });
 
 export const updateClientMemberSchema = z.object({
   role: z.nativeEnum(ClientRole)

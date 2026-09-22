@@ -1,6 +1,7 @@
-import { ClientRole } from '@prisma/client';
+import { ClientRole, RoleName } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { ConflictError, NotFoundError, BadRequestError } from '../../shared/errors/app-error';
+import { hashPassword } from '../../shared/utils/password.util';
 import { CreateClientInput, UpdateClientInput, AddClientMemberInput, UpdateClientMemberInput } from './client.schema';
 
 export class ClientService {
@@ -186,8 +187,43 @@ export class ClientService {
   }
 
   async addMember(clientId: string, input: AddClientMemberInput) {
+    let targetUserId = input.userId;
+
+    if (!targetUserId && input.email) {
+      const email = input.email.toLowerCase().trim();
+      let user = await prisma.user.findFirst({
+        where: { email, deletedAt: null }
+      });
+
+      if (!user) {
+        const memberRole = await prisma.role.findFirst({
+          where: { name: { in: [RoleName.MEMBER, RoleName.TEAM_MEMBER] } }
+        });
+        const hashedPassword = await hashPassword(input.password || 'Password123!');
+        user = await prisma.user.create({
+          data: {
+            email,
+            passwordHash: hashedPassword,
+            firstName: input.firstName || email.split('@')[0],
+            lastName: input.lastName || 'Member',
+            isActive: true,
+            userRoles: memberRole
+              ? {
+                  create: { roleId: memberRole.id }
+                }
+              : undefined
+          }
+        });
+      }
+      targetUserId = user.id;
+    }
+
+    if (!targetUserId) {
+      throw new BadRequestError('Either userId or email must be provided to add a member');
+    }
+
     const user = await prisma.user.findFirst({
-      where: { id: input.userId, deletedAt: null }
+      where: { id: targetUserId, deletedAt: null }
     });
 
     if (!user) throw new NotFoundError('User to add was not found');
@@ -196,7 +232,7 @@ export class ClientService {
       where: {
         clientId_userId: {
           clientId,
-          userId: input.userId
+          userId: targetUserId
         }
       }
     });
@@ -208,7 +244,7 @@ export class ClientService {
     const member = await prisma.clientMember.create({
       data: {
         clientId,
-        userId: input.userId,
+        userId: targetUserId,
         role: input.role || ClientRole.MEMBER
       },
       include: {

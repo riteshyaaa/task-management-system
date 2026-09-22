@@ -17,6 +17,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { useClient } from '../context/ClientContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { taskService } from '../services/task.service';
 import { templateService } from '../services/template.service';
@@ -44,8 +45,15 @@ const COLUMNS: { id: string; statuses: TaskStatus[]; label: string; color: strin
 
 export const TasksPage: React.FC = () => {
   const { currentClient, clientMembers } = useClient();
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const isPrivileged =
+    user?.role?.name === 'ADMIN' ||
+    user?.role?.name === 'MANAGER' ||
+    (user as any)?.roles?.includes('ADMIN') ||
+    (user as any)?.roles?.includes('MANAGER');
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [engagements, setEngagements] = useState<Engagement[]>([]);
@@ -194,6 +202,34 @@ export const TasksPage: React.FC = () => {
     setNewTaskDueDate('');
     setNewTaskEstimatedHours('');
     setTemplateVariables({});
+  };
+
+  // Strict Deliverable Workflow State Machine Transitions
+  const getAvailableTransitions = (taskStatus: TaskStatus, privileged: boolean): { targetStatus: TaskStatus; label: string }[] => {
+    const transitions: { targetStatus: TaskStatus; label: string }[] = [];
+
+    if (taskStatus === 'TODO' || taskStatus === 'NOT_STARTED' || (taskStatus as any) === 'BACKLOG') {
+      transitions.push({ targetStatus: 'IN_PROGRESS', label: 'Start (In Progress)' });
+    } else if (taskStatus === 'IN_PROGRESS') {
+      transitions.push({ targetStatus: 'READY_FOR_REVIEW', label: 'Submit for Review' });
+      if (privileged) {
+        transitions.push({ targetStatus: 'TODO', label: 'Back to To Do' });
+      }
+    } else if (taskStatus === 'CHANGES_REQUESTED') {
+      transitions.push({ targetStatus: 'IN_PROGRESS', label: 'Rework (In Progress)' });
+    } else if (taskStatus === 'READY_FOR_REVIEW' || (taskStatus as any) === 'REVIEW' || taskStatus === 'WAITING_FOR_CLIENT') {
+      if (privileged) {
+        transitions.push({ targetStatus: 'COMPLETED', label: 'Approve & Complete' });
+        transitions.push({ targetStatus: 'CHANGES_REQUESTED', label: 'Request Changes' });
+        transitions.push({ targetStatus: 'IN_PROGRESS', label: 'Back to In Progress' });
+      }
+    } else if (taskStatus === 'COMPLETED' || taskStatus === 'DONE') {
+      if (privileged) {
+        transitions.push({ targetStatus: 'IN_PROGRESS', label: 'Reopen Task' });
+      }
+    }
+
+    return transitions;
   };
 
   // Move Task Status (Optimistic UI)
@@ -456,9 +492,11 @@ export const TasksPage: React.FC = () => {
             </select>
           )}
 
-          <Button variant="primary" leftIcon={<Plus className="w-4 h-4" />} onClick={() => setIsCreateModalOpen(true)}>
-            Add Task
-          </Button>
+          {isPrivileged && (
+            <Button variant="primary" leftIcon={<Plus className="w-4 h-4" />} onClick={() => setIsCreateModalOpen(true)}>
+              Add Task
+            </Button>
+          )}
         </div>
       </div>
 
@@ -607,23 +645,22 @@ export const TasksPage: React.FC = () => {
                     </div>
 
                     {/* Quick Move Trigger Bar */}
-                    <div className="hidden group-hover:flex items-center justify-end gap-1 mt-2 pt-2 border-t border-slate-800/60 flex-wrap">
-                      {COLUMNS.filter((c) => !c.statuses.includes(task.status)).map((targetCol) => {
-                        const targetStatus = targetCol.id === 'REVIEW' ? 'READY_FOR_REVIEW' : (targetCol.id === 'COMPLETED' ? 'COMPLETED' : targetCol.id as TaskStatus);
-                        return (
+                    {getAvailableTransitions(task.status, isPrivileged).length > 0 && (
+                      <div className="hidden group-hover:flex items-center justify-end gap-1 mt-2 pt-2 border-t border-slate-800/60 flex-wrap">
+                        {getAvailableTransitions(task.status, isPrivileged).map((trans) => (
                           <button
-                            key={targetCol.id}
+                            key={trans.targetStatus}
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleStatusChange(task.id, targetStatus);
+                              handleStatusChange(task.id, trans.targetStatus);
                             }}
                             className="px-2 py-0.5 rounded text-[9px] font-semibold bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white transition-colors"
                           >
-                            &rarr; {targetCol.label}
+                            &rarr; {trans.label}
                           </button>
-                        );
-                      })}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -845,28 +882,32 @@ export const TasksPage: React.FC = () => {
                   <p className="text-[11px] text-slate-300">
                     {selectedTask.status === 'CHANGES_REQUESTED'
                       ? 'Revisions have been requested on this task. Review feedback below before resubmitting.'
-                      : 'Managers and reviewers can approve this deliverable or request changes with feedback.'}
+                      : isPrivileged
+                      ? 'Managers and reviewers can approve this deliverable or request changes with feedback.'
+                      : 'This deliverable has been submitted for review. Waiting for a Manager/Admin to review and approve.'}
                   </p>
 
-                  <div className="flex items-center gap-2 pt-1">
-                    <Button
-                      size="sm"
-                      variant="primary"
-                      className="bg-emerald-600 hover:bg-emerald-500 text-xs flex items-center gap-1.5"
-                      isLoading={reviewSubmitting}
-                      onClick={handleApproveTask}
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Approve & Complete
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-amber-300 border-amber-500/30 hover:bg-amber-950/40 text-xs flex items-center gap-1.5"
-                      onClick={() => setIsChangesModalOpen(true)}
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" /> Request Changes
-                    </Button>
-                  </div>
+                  {isPrivileged && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-xs flex items-center gap-1.5"
+                        isLoading={reviewSubmitting}
+                        onClick={handleApproveTask}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Approve & Complete
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-amber-300 border-amber-500/30 hover:bg-amber-950/40 text-xs flex items-center gap-1.5"
+                        onClick={() => setIsChangesModalOpen(true)}
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" /> Request Changes
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -874,19 +915,21 @@ export const TasksPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">
-                    Status
+                    Status (Workflow Graph)
                   </label>
                   <select
                     value={selectedTask.status}
                     onChange={(e) => handleStatusChange(selectedTask.id, e.target.value as TaskStatus)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-white"
                   >
-                    <option value="NOT_STARTED">Not Started</option>
-                    <option value="TODO">To Do</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="READY_FOR_REVIEW">Ready for Review</option>
-                    <option value="CHANGES_REQUESTED">Changes Requested</option>
-                    <option value="COMPLETED">Completed</option>
+                    <option value={selectedTask.status}>
+                      Current: {selectedTask.status.replace(/_/g, ' ')}
+                    </option>
+                    {getAvailableTransitions(selectedTask.status, isPrivileged).map((trans) => (
+                      <option key={trans.targetStatus} value={trans.targetStatus}>
+                        &rarr; {trans.label} ({trans.targetStatus.replace(/_/g, ' ')})
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -954,16 +997,18 @@ export const TasksPage: React.FC = () => {
                   ))}
                 </div>
 
-                <form onSubmit={handleAddSubtask} className="flex gap-2">
-                  <Input
-                    placeholder="Add checklist item..."
-                    value={newSubtaskTitle}
-                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                  />
-                  <Button type="submit" size="sm" variant="secondary">
-                    Add
-                  </Button>
-                </form>
+                {isPrivileged && (
+                  <form onSubmit={handleAddSubtask} className="flex gap-2">
+                    <Input
+                      placeholder="Add checklist item..."
+                      value={newSubtaskTitle}
+                      onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                    />
+                    <Button type="submit" size="sm" variant="secondary">
+                      Add
+                    </Button>
+                  </form>
+                )}
               </div>
 
               {/* Comments Thread */}
