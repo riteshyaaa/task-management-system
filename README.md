@@ -1,4 +1,4 @@
-# Enterprise Task Management & Workflow Automation System
+# Professional Services Engagement & Task Management System
 
 [![Node.js](https://img.shields.io/badge/Node.js-v18+-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
@@ -6,111 +6,95 @@
 [![Prisma](https://img.shields.io/badge/Prisma-5.10-2D3748.svg)](https://www.prisma.io/)
 [![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://reactjs.org/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC.svg)](https://tailwindcss.com/)
-[![Jest Tests](https://img.shields.io/badge/Tests-100%25%20Passing-brightgreen.svg)](https://jestjs.io/)
+[![Tests](https://img.shields.io/badge/Tests-82%20Passing-brightgreen.svg)](https://jestjs.io/)
 
-A full-stack, enterprise-grade Task Management and Workflow Automation Platform. Built with clean architecture, strict TypeScript typing across the stack, dual-token cryptographic authentication, Role-Based and Attribute-Based Access Control (RBAC/ABAC), a Directed Acyclic Graph (DAG) workflow state machine, an event-driven automation rule engine, multi-mode recurrence scheduling, append-only JSONB audit trails, and user engagement gamification.
+A full-stack, enterprise-grade Professional Services Engagement Management and Workflow Automation Platform. Built with strict TypeScript typing across the stack, dual-token cryptographic authentication, Role-Based Access Control (RBAC), multi-tenant client workspace isolation, a Directed Acyclic Graph (DAG) 4-state workflow engine, multi-mode recurrence scheduling, optimistic concurrency control, append-only audit logging, and operational analytics.
 
 ---
 
 ## 🌟 Key Features
 
-### 1. Security, Identity & Workspace Tenancy
-- **Dual-Token Cryptographic Authentication**: 15-minute RS/HS256 JWT access tokens paired with 7-day cryptographic refresh tokens stored in PostgreSQL.
-- **Refresh Token Rotation & Automatic Reuse Detection**: Immediate revocation of the entire token family upon detection of compromised or replayed refresh tokens.
-- **Hybrid RBAC + Workspace ABAC Security**:
-  - Global system roles (`SUPER_ADMIN`, `ADMIN`, `MEMBER`, `GUEST`).
-  - Granular permission checking (`requirePermission('tasks:create')`).
-  - Multi-tenant client workspace isolation (`OWNER`, `MAINTAINER`, `MEMBER`) preventing unauthorized cross-workspace data access.
-- **Enterprise Middleware Suite**: Centralized RFC 7807 problem details error handling, Helmet security headers, CORS origin whitelisting, and brute-force rate limiting.
+### 1. Client Engagement & Deliverable Management
+- **Multi-Tenant Client Workspaces**: Complete data isolation across client workspaces (e.g., *Acme Corporation* and *TechStart Inc*).
+- **Engagement Lifecycles & Duplicate Prevention**: Track recurring and fixed-period client engagements with composite uniqueness checks preventing duplicate engagements across matching date ranges.
+- **Task & Deliverable Tracking**: Real-time status management, priority filters, label taxonomy, hierarchical subtasks, and comment threads.
 
-### 2. Directed Acyclic Graph (DAG) Workflow State Machine
-- **Configurable State Machine**: Custom workflow pipelines with designated initial and terminal states.
-- **Transition Guard Conditions**: Enforces role requirements (`ROLE_CHECK`), assignee presence, and subtask completion rules before permitting state transitions.
-- **Side-Effect Hooks**: Automated notification dispatch and checklist generation triggered upon state changes.
-- **Transition Duration Tracking**: Append-only transition history with microsecond-accurate state residency metrics.
+### 2. Standardized 4-State Workflow State Machine
+- **Strict Linear Review Workflow**: Enforces deliverable progression:
+  $$\text{NOT\_STARTED} \longrightarrow \text{IN\_PROGRESS} \longrightarrow \text{READY\_FOR\_REVIEW} \longrightarrow \text{COMPLETED}$$
+- **Role-Guarded Transitions**: Members progress tasks to review; deliverable sign-off and completion is strictly guarded to `ADMIN` and `MANAGER` roles.
+- **Anti-Self-Approval**: Prevents task assignees from approving their own deliverables.
+- **Transition History**: Append-only transition audit logs with reviewer feedback.
 
-### 3. Concurrency Control & Real-Time Kanban Board
-- **Optimistic Concurrency Control (OCC)**: Zero-data-loss protection using integer `version` columns on mutable entities. Concurrent edits trigger `409 Conflict` responses with state reconciliation.
-- **Interactive Drag-and-Drop Kanban Board**: Real-time column transitions, priority filters, label tags, and full-text search.
-- **Task Detail Drawer**: Rich markdown descriptions, hierarchical subtask checklists, comment threads, and live activity feeds.
+### 3. Security, RBAC & Workspace Access
+- **Dual-Token Cryptographic Authentication**: Short-lived JWT access tokens paired with 7-day cryptographic refresh tokens stored in PostgreSQL.
+- **Refresh Token Rotation & Reuse Detection**: Immediate family-wide revocation if a compromised refresh token is replayed.
+- **Role-Based Permissions**: Role hierarchies (`ADMIN`, `MANAGER`, `MEMBER`) with restricted member management (admin only) and granular mutation gates.
+- **Optimistic Concurrency Control (OCC)**: Zero-data-loss protection using integer `version` columns to prevent race conditions during concurrent updates.
 
-### 4. Template Engine & Event-Driven Automation
-- **Dynamic Task Templates**: Reusable task blueprints with variable interpolation (`{{client_name}}`, `{{release_version}}`) and checklist instantiation.
-- **Trigger-Condition-Action Automation Engine**: Event-driven rules supporting triggers (`TASK_CREATED`, `STATUS_CHANGED`, `PRIORITY_CHANGED`, `DUE_DATE_APPROACHING`), multi-criteria condition filters, and automated actions (`ASSIGN_USER`, `SET_PRIORITY`, `ADD_LABEL`, `TRIGGER_NOTIFICATION`).
+### 4. Recurrence Engine & Background Scheduling
+- **Multi-Mode Recurrence Rules**: Daily intervals, weekly bitmask days (e.g., Mon/Fri), monthly day-of-month (with leap-year clamping), and 5-field Cron expressions.
+- **Idempotent Instance Generation**: Transaction-isolated background scheduler prevents duplicate task instantiation on re-runs.
 
-### 5. Multi-Mode Recurrence Engine & Background Scheduler
-- **Calculation Capabilities**:
-  - **Daily**: Fixed interval step counts.
-  - **Weekly**: Bitmask weekday selections (e.g., Monday, Wednesday, Friday).
-  - **Monthly (Day-of-Month)**: Intelligent month-end clamping (e.g., Jan 31 -> Feb 28 in common years, Feb 29 in leap years).
-  - **Monthly (Nth-Weekday)**: Dynamic calculations (e.g., "2nd Tuesday" or "Last Friday" of every month).
-  - **Custom 5-Field Cron**: High-precision cron expressions powered by `cron-parser`.
-- **Background Cron Poller**: Asynchronous cron worker running without blocking HTTP thread execution.
-
-### 6. Append-Only Audit Trail & Compliance Subsystem
-- **JSONB Mutation Diff Interceptor**: Captures pre-execution (`oldValues`) and post-execution (`newValues`) states with automatic changed field extraction.
-- **Bulk Operation Tracking**: Correlates multi-record updates under unique batch execution IDs.
-- **Filterable Audit Inspector**: Query by entity, action, user, workspace, and timestamp range.
-
-### 7. Engagement Gamification & Analytics Dashboard
-- **Daily Login Streak Calculator**: Calendar-day tracking measuring consecutive daily activity, same-day no-op idempotency, and inactivity resets.
-- **Client Velocity & Performance Metrics**: Aggregates completed story points, average cycle time, overdue ratios, and member leaderboards.
-- **Customizable Dashboard Grid**: Metric summary cards, velocity charts, and personalized widget layouts.
+### 5. Audit Logging & Operational Analytics
+- **Append-Only JSONB Audit Trails**: Captures actor, IP address, pre/post mutation states (`oldValues` vs `newValues`), and changed fields.
+- **Engagement Operational Dashboard**: Real-time operational metrics (Open Tasks, Overdue, Due Today, Waiting for Client, Waiting for Review, Completed This Period, Active Engagements) alongside sprint velocity and member leaderboards.
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## 🏗️ Project Structure
 
 ```
 task_management/
 ├── backend/                        # Node.js + Express + TypeScript REST API
 │   ├── prisma/
-│   │   ├── schema.prisma           # 30 relational models with foreign keys & indexes
-│   │   └── seed.ts                 # Database seeder (Roles, Permissions, Workflows, Admin)
+│   │   ├── schema.prisma           # 30 relational models with constraints & indexes
+│   │   └── seed.ts                 # Database seeder (Roles, Workspaces, Workflows, Fixtures)
 │   ├── src/
-│   │   ├── config/                 # Environment, Database client, Structured Logger
-│   │   ├── middleware/             # Auth, RBAC, ABAC, Validation, Error Handling
-│   │   ├── modules/                # Domain-Driven Modules (Auth, Tasks, Workflows, etc.)
-│   │   ├── scheduler/              # Background recurrence cron workers
-│   │   └── shared/                 # RFC Error classes, response utilities, date-fns math
+│   │   ├── config/                 # Environment, Prisma client, Winston logger
+│   │   ├── middleware/             # Auth, RBAC, ABAC, Zod validation, Error handler
+│   │   ├── modules/                # Domain modules (Auth, Clients, Engagements, Tasks, Workflows)
+│   │   ├── scheduler/              # Recurrence cron workers & recurrence engine
+│   │   └── shared/                 # RFC 7807 AppErrors, response utilities, date helpers
 │   └── tests/
-│       ├── unit/                   # Pure unit tests (Recurrence, DAG, OCC, Streaks)
-│       └── integration/            # Supertest API tests (Health, Auth, Tasks)
+│       ├── unit/                   # Unit tests (Recurrence math, DAG validation, OCC, Streaks)
+│       └── integration/            # Supertest API tests (Auth, Engagements, Tasks, Health)
 ├── frontend/                       # React 18 + TypeScript + Vite + TailwindCSS SPA
 │   ├── src/
-│   │   ├── components/             # Reusable UI kit (Buttons, Modals, Badges, Layout)
-│   │   ├── features/               # Domain components (Kanban, WorkflowDesigner, Dashboard)
-│   │   ├── hooks/                  # Custom React hooks (useAuth, useTasks, useWorkflows)
-│   │   ├── pages/                  # Route views (Dashboard, Tasks, Templates, Audit, etc.)
-│   │   └── services/               # Axios/Fetch API client layer
+│   │   ├── components/             # Reusable UI kit (Buttons, Cards, Modals, Badges, Layout)
+│   │   ├── context/                # AuthContext, ClientContext, ToastContext
+│   │   ├── pages/                  # Route views (Dashboard, Tasks, Engagements, Workflows, etc.)
+│   │   ├── services/               # Axios API client services
+│   │   └── types/                  # Shared TypeScript interfaces & enums
 │   └── nginx.conf                  # Production reverse proxy configuration
-└── docker-compose.yml              # Multi-container orchestration (PostgreSQL, Backend, Frontend)
+├── docker-compose.yml              # Multi-container orchestration (Postgres, Backend, Frontend)
+└── README.md                       # Project overview and setup guide
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Setup Instructions
 
 ### Prerequisites
-- **Node.js**: v18.0.0 or higher
-- **npm**: v9.0.0 or higher
-- **PostgreSQL**: v14.0 or higher (or Docker)
+- **Node.js**: `v18.0.0` or higher
+- **npm**: `v9.0.0` or higher
+- **PostgreSQL**: `v14.0` or higher (or Docker)
 
-### Quick Start (Local Setup)
+### Local Quickstart
 
-1. **Clone the repository and install dependencies**:
+1. **Clone the repository and install root dependencies**:
    ```bash
-   git clone https://github.com/your-org/task-management-system.git
+   git clone https://github.com/riteshyaaa/task-management-system.git
    cd task-management-system
    npm install
    ```
 
 2. **Configure Environment Variables**:
-   Copy `.env.example` in `backend/` and configure your database connection:
+   Copy `.env.example` in `backend/`:
    ```bash
    cp backend/.env.example backend/.env
    ```
-   *Sample `backend/.env`*:
+   *Verify `backend/.env` settings*:
    ```env
    NODE_ENV=development
    PORT=5000
@@ -120,144 +104,67 @@ task_management/
    JWT_ACCESS_EXPIRES_IN="15m"
    JWT_REFRESH_EXPIRES_IN="7d"
    CORS_ORIGIN="http://localhost:5173,http://localhost:3000"
-   LOG_LEVEL="debug"
    ENABLE_SCHEDULER="true"
    ```
 
-3. **Initialize Database & Seed Data**:
+3. **Initialize Database & Seed Test Fixtures**:
    ```bash
    npm run setup
    ```
-   *This generates Prisma client, runs migrations, and seeds default roles, permissions, workflow templates, and test users.*
+   *Generates Prisma Client, pushes schema migrations, and seeds roles, client workspaces, engagements, workflows, tasks, and recurring rules.*
 
 4. **Start Development Servers**:
    ```bash
    npm run dev
    ```
-   - **Frontend Application**: [http://localhost:5173](http://localhost:5173)
-   - **Backend REST API**: [http://localhost:5000/api/v1](http://localhost:5000/api/v1)
-   - **API Health Endpoint**: [http://localhost:5000/health](http://localhost:5000/health)
+   - **Frontend App**: [http://localhost:5173](http://localhost:5173)
+   - **Backend API**: [http://localhost:5000/api/v1](http://localhost:5000/api/v1)
+   - **Health Check**: [http://localhost:5000/health](http://localhost:5000/health)
 
-### Default Seed Credentials
-| Role | Email | Password |
-|---|---|---|
-| **System Administrator** | `admin@taskmgmt.com` | `Admin123!` |
-| **Engineering Member** | `developer@taskmgmt.com` | `Password123!` |
+---
+
+## 🔑 Demo Login Credentials
+
+| Role | Email | Password | Access Scope |
+|---|---|---|---|
+| **System Administrator** | `admin@example.com` | `Password123!` | Full global access, client/member management, all approvals |
+| **Manager 1** | `manager@example.com` | `Password123!` | Acme Corp manager, creates engagements, reviews/approves deliverables |
+| **Manager 2** | `manager2@example.com` | `Password123!` | TechStart manager, creates engagements, reviews/approves deliverables |
+| **Member (Dev)** | `dev@example.com` | `Password123!` | Works on tasks, progresses `IN_PROGRESS` → `READY_FOR_REVIEW` |
+| **Member (QA)** | `qa@example.com` | `Password123!` | Works on tasks, progresses `IN_PROGRESS` → `READY_FOR_REVIEW` |
+
+*Note: Quick login buttons are available directly on the login screen for 1-click credential autofill.*
+
+---
+
+## 🧪 Running Tests
+
+The test suite contains **82 automated tests** across 9 unit and integration test suites:
+
+```bash
+# Run all backend tests
+cd backend
+npm test
+
+# Run frontend production build check
+cd ../frontend
+npm run build
+```
 
 ---
 
 ## 🐳 Docker Deployment
 
-To launch the full production stack using Docker Compose:
+To launch the complete containerized stack:
 
 ```bash
 docker-compose up -d --build
 ```
-
-Services will be available at:
-- **Web Dashboard**: [http://localhost:3000](http://localhost:3000)
-- **REST API**: [http://localhost:5000](http://localhost:5000)
-- **PGAdmin Web Interface**: [http://localhost:5050](http://localhost:5050) (`admin@taskmgmt.com` / `adminpassword`)
-
----
-
-## 🧪 Testing Suite
-
-The codebase features comprehensive unit and integration test coverage:
-
-```bash
-# Run all unit tests (State machine, Recurrence math, Streaks, Error handling)
-npm test --workspace=backend -- --testPathPattern="unit"
-
-# Run integration tests (Health, Auth lifecycle, OCC mutation protection)
-npm test --workspace=backend -- --testPathPattern="integration"
-
-# Run full test suite
-npm test
-```
-
-### Verified Test Suites:
-- `tests/unit/recurrence-calculator.test.ts` (Daily, Weekly bitmask, Leap-year month clamping, Nth-weekday, 5-field Cron)
-- `tests/unit/workflow-validator.test.ts` (DAG verification, Initial/Terminal state checks, Reachability analysis)
-- `tests/unit/workflow-engine.test.ts` (State mapping, `ROLE_CHECK`, `FIELD_VALUE`, `ALL_SUBTASKS_COMPLETED` guards)
-- `tests/unit/streak-calculator.test.ts` (New user init, Same-day idempotency, Consecutive-day increment, Inactivity reset)
-- `tests/unit/error-handler.test.ts` (AppError formatting, Zod schema validation errors, Prisma constraint mapping)
-- `tests/integration/health.api.test.ts` (System uptime & version checks)
-
----
-
-## 📖 API Reference
-
-### Authentication (`/api/v1/auth`)
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `POST` | `/api/v1/auth/register` | Register new user account | No |
-| `POST` | `/api/v1/auth/login` | Authenticate with email/password | No |
-| `POST` | `/api/v1/auth/refresh` | Rotate access & refresh tokens | No |
-| `POST` | `/api/v1/auth/logout` | Revoke active refresh token | Yes |
-| `GET` | `/api/v1/auth/me` | Fetch authenticated user profile & permissions | Yes |
-
-### Task Management (`/api/v1/tasks`)
-| Method | Endpoint | Description | Permissions |
-|---|---|---|---|
-| `GET` | `/api/v1/tasks` | List & filter tasks (search, status, priority, client) | `tasks:read` |
-| `POST` | `/api/v1/tasks` | Create new task | `tasks:create` |
-| `GET` | `/api/v1/tasks/:id` | Get task details with subtasks, comments, labels | `tasks:read` |
-| `PUT` | `/api/v1/tasks/:id` | Update task (Guarded with OCC `version`) | `tasks:update` |
-| `DELETE` | `/api/v1/tasks/:id` | Soft/Hard delete task | `tasks:delete` |
-| `POST` | `/api/v1/tasks/:id/subtasks` | Add subtask checklist item | `tasks:update` |
-| `PUT` | `/api/v1/tasks/:id/subtasks/:subtaskId` | Toggle subtask completion status | `tasks:update` |
-| `POST` | `/api/v1/tasks/:id/comments` | Add comment thread to task | `tasks:read` |
-
-### Client Workspace Management (`/api/v1/clients`)
-| Method | Endpoint | Description | Permissions |
-|---|---|---|---|
-| `GET` | `/api/v1/clients` | List user's client workspaces | Authenticated |
-| `POST` | `/api/v1/clients` | Create new client workspace | `clients:create` |
-| `GET` | `/api/v1/clients/:id` | Get client workspace details | `clients:read` |
-| `PATCH` | `/api/v1/clients/:id` | Update client details | `clients:update` |
-| `DELETE` | `/api/v1/clients/:id` | Archive client workspace | `clients:delete` |
-| `GET` | `/api/v1/clients/:id/members` | List client workspace members | `clients:read` |
-| `POST` | `/api/v1/clients/:id/members` | Add member to client workspace | `clients:update` |
-| `PATCH` | `/api/v1/clients/:id/members/:userId` | Update member role | `clients:update` |
-| `DELETE` | `/api/v1/clients/:id/members/:userId` | Remove member from client workspace | `clients:update` |
-
-### Workflow State Machine (`/api/v1/workflows`)
-| Method | Endpoint | Description | Permissions |
-|---|---|---|---|
-| `GET` | `/api/v1/workflows` | List client workflow definitions | `workflows:read` |
-| `POST` | `/api/v1/workflows` | Create custom DAG workflow definition | `workflows:create` |
-| `POST` | `/api/v1/workflows/tasks/:taskId/transition` | Execute state transition with guard evaluation | `tasks:update` |
-| `GET` | `/api/v1/workflows/tasks/:taskId/history` | Fetch task transition timeline & durations | `workflows:read` |
-
-### Recurring Schedules & Automation (`/api/v1/recurring` & `/api/v1/automation-rules`)
-| Method | Endpoint | Description | Permissions |
-|---|---|---|---|
-| `GET` | `/api/v1/recurring` | List active recurrence rules | `tasks:read` |
-| `POST` | `/api/v1/recurring` | Create recurrence rule (Daily/Weekly/Monthly/Cron) | `tasks:create` |
-| `POST` | `/api/v1/recurring/:id/trigger` | Manually trigger recurring task generation | `tasks:create` |
-| `GET` | `/api/v1/automation-rules` | List workspace automation rules | `workflows:read` |
-| `POST` | `/api/v1/automation-rules` | Create event-driven automation rule | `workflows:create` |
-
-### Audit & Engagement (`/api/v1/audit` & `/api/v1/engagement`)
-| Method | Endpoint | Description | Permissions |
-|---|---|---|---|
-| `GET` | `/api/v1/audit` | Query append-only audit trail with JSONB diffs | `audit:read` |
-| `GET` | `/api/v1/engagement/streaks/me` | Fetch user daily login streak & metrics | Authenticated |
-| `GET` | `/api/v1/engagement/velocity` | Fetch client velocity & sprint completion metrics | `clients:read` |
-| `GET` | `/api/v1/engagement/leaderboard` | Fetch client member engagement leaderboard | `clients:read` |
-
----
-
-## 🔒 Security Architecture
-
-1. **Password Hashing**: Salted bcrypt hashing with 12 cost factor rounds.
-2. **Token Rotation & Invalidation**: Cryptographic SHA-256 hash validation on refresh token lookup; token reuse triggers immediate family-wide cascade revocation.
-3. **Database Input Sanitization**: Parameterized queries via Prisma ORM eliminating SQL injection vectors.
-4. **Input Schema Validation**: Deep payload validation on all route boundaries via Zod.
-5. **Optimistic Concurrency Control (OCC)**: Protects against silent data overwrites in distributed multi-user environments.
+- **Web Application**: [http://localhost:3000](http://localhost:3000)
+- **REST API Server**: [http://localhost:5000](http://localhost:5000)
+- **PostgreSQL Database**: `localhost:5432`
 
 ---
 
 ## 📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License.
