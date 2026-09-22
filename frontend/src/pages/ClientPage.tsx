@@ -70,11 +70,11 @@ export const ClientPage: React.FC = () => {
     }
   };
 
-  const handleRemoveMember = async (memberId: string) => {
+  const handleRemoveMember = async (userId: string) => {
     if (!currentClient) return;
     try {
-      await clientService.removeclientMember(currentClient.id, memberId);
-      setMembers((prev) => prev.filter((m) => m.id !== memberId));
+      await clientService.removeclientMember(currentClient.id, userId);
+      setMembers((prev) => prev.filter((m) => m.userId !== userId && m.user?.id !== userId));
       showToast('Member removed from client', 'success');
     } catch (err: any) {
       showToast(err.response?.data?.error?.message || 'Failed to remove member', 'error');
@@ -178,7 +178,7 @@ export const ClientPage: React.FC = () => {
                   <td className="py-3.5 px-4 font-mono text-slate-400">{formatDate(member.joinedAt)}</td>
                   <td className="py-3.5 px-4 text-right">
                     <button
-                      onClick={() => handleRemoveMember(member.id)}
+                      onClick={() => handleRemoveMember(member.userId || member.user?.id)}
                       className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                       title="Remove Member"
                     >

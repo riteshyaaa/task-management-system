@@ -90,11 +90,16 @@ async function main() {
     { slug: 'roles:manage', name: 'Manage Roles', module: 'roles', description: 'Assign roles and permissions' },
 
     // Clients module
-    { slug: 'teams:create', name: 'Create Clients', module: 'clients', description: 'Create new client workspaces' },
-    { slug: 'teams:read', name: 'View Clients', module: 'clients', description: 'View client details and members' },
-    { slug: 'teams:update', name: 'Update Clients', module: 'clients', description: 'Update client settings' },
-    { slug: 'teams:delete', name: 'Delete Clients', module: 'clients', description: 'Archive or delete clients' },
-    { slug: 'teams:manage_members', name: 'Manage Client Members', module: 'clients', description: 'Add or remove members' },
+    { slug: 'clients:create', name: 'Create Clients', module: 'clients', description: 'Create new client workspaces' },
+    { slug: 'clients:read', name: 'View Clients', module: 'clients', description: 'View client details and members' },
+    { slug: 'clients:update', name: 'Update Clients', module: 'clients', description: 'Update client settings' },
+    { slug: 'clients:delete', name: 'Delete Clients', module: 'clients', description: 'Archive or delete clients' },
+    { slug: 'clients:manage_members', name: 'Manage Client Members', module: 'clients', description: 'Add or remove members' },
+    { slug: 'teams:create', name: 'Create Clients (Legacy)', module: 'clients', description: 'Create new client workspaces' },
+    { slug: 'teams:read', name: 'View Clients (Legacy)', module: 'clients', description: 'View client details and members' },
+    { slug: 'teams:update', name: 'Update Clients (Legacy)', module: 'clients', description: 'Update client settings' },
+    { slug: 'teams:delete', name: 'Delete Clients (Legacy)', module: 'clients', description: 'Archive or delete clients' },
+    { slug: 'teams:manage_members', name: 'Manage Client Members (Legacy)', module: 'clients', description: 'Add or remove members' },
 
     // Tasks module
     { slug: 'tasks:create', name: 'Create Tasks', module: 'tasks', description: 'Create new tasks and subtasks' },
@@ -103,6 +108,12 @@ async function main() {
     { slug: 'tasks:delete', name: 'Delete Tasks', module: 'tasks', description: 'Soft delete tasks' },
     { slug: 'tasks:bulk_manage', name: 'Bulk Manage Tasks', module: 'tasks', description: 'Perform bulk update on tasks' },
 
+    // Comments module
+    { slug: 'comments:read', name: 'View Comments', module: 'comments', description: 'Read task comments' },
+    { slug: 'comments:create', name: 'Add Comments', module: 'comments', description: 'Post task comments' },
+    { slug: 'comments:update', name: 'Update Comments', module: 'comments', description: 'Edit comments' },
+    { slug: 'comments:delete', name: 'Delete Comments', module: 'comments', description: 'Remove comments' },
+
     // Workflows module
     { slug: 'workflows:read', name: 'View Workflows', module: 'workflows', description: 'View workflow state machines' },
     { slug: 'workflows:create', name: 'Create Workflows', module: 'workflows', description: 'Create workflow definitions' },
@@ -110,19 +121,26 @@ async function main() {
     { slug: 'workflows:delete', name: 'Delete Workflows', module: 'workflows', description: 'Archive workflow definitions' },
     { slug: 'workflows:transition', name: 'Execute Transitions', module: 'workflows', description: 'Transition task states' },
 
-    // Templates & Automation
+    // Templates module
+    { slug: 'templates:read', name: 'View Templates', module: 'templates', description: 'View task templates' },
+    { slug: 'templates:create', name: 'Create Templates', module: 'templates', description: 'Create task templates' },
+    { slug: 'templates:update', name: 'Update Templates', module: 'templates', description: 'Modify task templates' },
+    { slug: 'templates:delete', name: 'Delete Templates', module: 'templates', description: 'Delete task templates' },
     { slug: 'templates:manage', name: 'Manage Templates', module: 'templates', description: 'Create, update, delete task templates' },
     { slug: 'templates:instantiate', name: 'Use Templates', module: 'templates', description: 'Generate tasks from templates' },
+
+    // Automation
     { slug: 'automation:manage', name: 'Manage Automation Rules', module: 'automation', description: 'Create automation rules' },
 
     // Recurring Tasks
     { slug: 'recurring:manage', name: 'Manage Recurring Tasks', module: 'recurring', description: 'Setup recurring rules' },
     { slug: 'recurring:read', name: 'View Recurring Tasks', module: 'recurring', description: 'View recurring configs' },
 
-    // Audit & Analytics
+    // Audit & Analytics & System
     { slug: 'audit:read', name: 'View Audit Logs', module: 'audit', description: 'View append-only audit trail' },
     { slug: 'analytics:read', name: 'View Analytics', module: 'analytics', description: 'View performance & velocity' },
-    { slug: 'dashboard:customize', name: 'Customize Dashboard', module: 'dashboard', description: 'Configure dashboard widgets' }
+    { slug: 'dashboard:customize', name: 'Customize Dashboard', module: 'dashboard', description: 'Configure dashboard widgets' },
+    { slug: 'system:settings', name: 'System Settings', module: 'system', description: 'Configure system settings & retention' }
   ];
 
   const createdPermissions = await Promise.all(
@@ -140,7 +158,7 @@ async function main() {
   );
 
   // Manager gets operational management permissions
-  const managerPerms = createdPermissions.filter(p => !['users:delete', 'roles:manage', 'teams:delete'].includes(p.slug));
+  const managerPerms = createdPermissions.filter(p => !['users:delete', 'roles:manage', 'clients:delete', 'teams:delete'].includes(p.slug));
   await Promise.all(
     managerPerms.map(p =>
       prisma.rolePermission.create({
@@ -151,8 +169,9 @@ async function main() {
 
   // Member gets standard operational permissions
   const memberPermSlugs = [
-    'users:read', 'teams:read', 'tasks:create', 'tasks:read', 'tasks:update',
-    'workflows:read', 'workflows:transition', 'templates:instantiate',
+    'users:read', 'clients:read', 'teams:read', 'tasks:create', 'tasks:read', 'tasks:update',
+    'comments:read', 'comments:create', 'comments:update',
+    'workflows:read', 'workflows:transition', 'templates:read', 'templates:instantiate',
     'recurring:read', 'analytics:read', 'dashboard:customize'
   ];
   await Promise.all(
