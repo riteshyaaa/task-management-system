@@ -7,7 +7,6 @@ import {
   WorkflowStatus,
   RecurrenceFrequency,
   RecurrenceStatus,
-  Cadence,
   EngagementStatus,
   ActivityType
 } from '@prisma/client';
@@ -45,7 +44,6 @@ async function main() {
   await prisma.templateItem.deleteMany();
   await prisma.taskTemplate.deleteMany();
   await prisma.taskWatcher.deleteMany();
-  await prisma.comment.deleteMany();
   await prisma.taskComment.deleteMany();
   await prisma.taskLabelMap.deleteMany();
   await prisma.label.deleteMany();
@@ -348,7 +346,7 @@ async function main() {
     data: {
       name: 'Monthly Bookkeeping',
       description: 'Comprehensive monthly bookkeeping, general ledger reconciliations, and expense tracking.',
-      defaultCadence: Cadence.MONTHLY
+      defaultCadence: RecurrenceFrequency.MONTHLY
     }
   });
 
@@ -356,7 +354,7 @@ async function main() {
     data: {
       name: 'Payroll Processing',
       description: 'Bi-weekly payroll calculations, tax withholdings, and direct deposit preparation.',
-      defaultCadence: Cadence.BI_WEEKLY
+      defaultCadence: RecurrenceFrequency.WEEKLY
     }
   });
 
@@ -364,7 +362,7 @@ async function main() {
     data: {
       name: 'Quarterly Tax Compliance',
       description: 'Quarterly sales and corporate tax estimation, documentation review, and compliance filing.',
-      defaultCadence: Cadence.QUARTERLY
+      defaultCadence: RecurrenceFrequency.MONTHLY
     }
   });
 
@@ -374,33 +372,31 @@ async function main() {
     data: {
       name: 'Standard Monthly Bookkeeping Template',
       description: 'Standard checklist template for monthly bookkeeping engagements',
+      defaultTitle: '{{client_name}} - Monthly Bookkeeping ({{period_start}})',
       clientId: client1.id,
       serviceTypeId: stBookkeeping.id,
       estimatedHours: 12.0,
-      priority: TaskPriority.HIGH,
+      defaultPriority: TaskPriority.HIGH,
       createdById: manager1.id,
-      items: {
+      templateItems: {
         create: [
           {
             title: '{{client_name}} - Bank & Credit Card Reconciliations ({{period_start}})',
             description: 'Import and reconcile all operating account transactions for {{service_name}}.',
             position: 0,
-            estimatedHours: 4.0,
-            priority: TaskPriority.HIGH
+            estimatedHours: 4.0
           },
           {
             title: '{{client_name}} - Accounts Payable & Receivable Review',
             description: 'Review aging reports, verify outstanding balances, and record accruals.',
             position: 1,
-            estimatedHours: 4.0,
-            priority: TaskPriority.MEDIUM
+            estimatedHours: 4.0
           },
           {
             title: '{{client_name}} - Month-End Financial Statements Prep',
             description: 'Generate Profit & Loss, Balance Sheet, and Trial Balance statements for manager sign-off.',
             position: 2,
-            estimatedHours: 4.0,
-            priority: TaskPriority.HIGH
+            estimatedHours: 4.0
           }
         ]
       }
@@ -411,26 +407,25 @@ async function main() {
     data: {
       name: 'Bi-Weekly Payroll Processing Checklist',
       description: 'Standard operational steps for running bi-weekly employee payroll',
+      defaultTitle: '{{client_name}} - Payroll Processing ({{period_start}})',
       clientId: client1.id,
       serviceTypeId: stPayroll.id,
       estimatedHours: 6.0,
-      priority: TaskPriority.URGENT,
+      defaultPriority: TaskPriority.URGENT,
       createdById: manager1.id,
-      items: {
+      templateItems: {
         create: [
           {
             title: '{{client_name}} - Timesheet Verification & Overtime Audit',
             description: 'Collect timesheet approvals and verify overtime / PTO hours for {{period_start}} to {{period_end}}.',
             position: 0,
-            estimatedHours: 2.0,
-            priority: TaskPriority.HIGH
+            estimatedHours: 2.0
           },
           {
             title: '{{client_name}} - Tax Deductions & Direct Deposit Batch',
             description: 'Calculate federal/state withholdings and submit ACH batch file for execution.',
             position: 1,
-            estimatedHours: 4.0,
-            priority: TaskPriority.URGENT
+            estimatedHours: 4.0
           }
         ]
       }
@@ -441,26 +436,25 @@ async function main() {
     data: {
       name: 'Quarterly Tax Compliance Review',
       description: 'Quarterly state and federal tax estimation review',
+      defaultTitle: '{{client_name}} - Tax Compliance ({{period_start}})',
       clientId: client2.id,
       serviceTypeId: stTaxCompliance.id,
       estimatedHours: 15.0,
-      priority: TaskPriority.HIGH,
+      defaultPriority: TaskPriority.HIGH,
       createdById: manager2.id,
-      items: {
+      templateItems: {
         create: [
           {
             title: '{{client_name}} - Quarterly Revenue & Deduction Aggregation',
             description: 'Aggregate all revenue accounts and deductible expenses for {{period_start}} through {{period_end}}.',
             position: 0,
-            estimatedHours: 8.0,
-            priority: TaskPriority.HIGH
+            estimatedHours: 8.0
           },
           {
             title: '{{client_name}} - Tax Filing Submission & Client Advisory',
             description: 'Complete quarterly filing forms and deliver estimated payment vouchers.',
             position: 1,
-            estimatedHours: 7.0,
-            priority: TaskPriority.HIGH
+            estimatedHours: 7.0
           }
         ]
       }
@@ -475,7 +469,7 @@ async function main() {
       serviceTypeId: stBookkeeping.id,
       title: 'Acme Corp - September 2026 Monthly Bookkeeping',
       description: 'Monthly ledger closure and bookkeeping service for Acme Corporation',
-      status: EngagementStatus.IN_PROGRESS,
+      status: EngagementStatus.ACTIVE,
       periodStart: new Date('2026-09-01T00:00:00Z'),
       periodEnd: new Date('2026-09-30T23:59:59Z'),
       dueDate: new Date('2026-10-05T00:00:00Z'),
@@ -490,7 +484,7 @@ async function main() {
       serviceTypeId: stPayroll.id,
       title: 'Acme Corp - Sept Period 1 Payroll',
       description: 'First half payroll processing for September 2026',
-      status: EngagementStatus.IN_PROGRESS,
+      status: EngagementStatus.ACTIVE,
       periodStart: new Date('2026-09-01T00:00:00Z'),
       periodEnd: new Date('2026-09-15T23:59:59Z'),
       dueDate: new Date('2026-09-17T00:00:00Z'),
@@ -505,7 +499,7 @@ async function main() {
       serviceTypeId: stTaxCompliance.id,
       title: 'TechStart Inc - Q3 2026 Tax Compliance',
       description: 'Quarter 3 sales and corporate estimated tax compliance',
-      status: EngagementStatus.IN_PROGRESS,
+      status: EngagementStatus.ACTIVE,
       periodStart: new Date('2026-07-01T00:00:00Z'),
       periodEnd: new Date('2026-09-30T23:59:59Z'),
       dueDate: new Date('2026-10-15T00:00:00Z'),
@@ -885,18 +879,18 @@ async function main() {
     });
 
     if (def.status === TaskStatus.CHANGES_REQUESTED) {
-      await prisma.comment.create({
+      await prisma.taskComment.create({
         data: {
           taskId: task.id,
-          authorId: def.reporterId,
+          userId: def.reporterId,
           content: 'Changes Requested: Please include itemized transaction support documentation.'
         }
       });
     } else if (def.status === TaskStatus.COMPLETED) {
-      await prisma.comment.create({
+      await prisma.taskComment.create({
         data: {
           taskId: task.id,
-          authorId: def.reporterId,
+          userId: def.reporterId,
           content: 'Task reviewed and approved.'
         }
       });
