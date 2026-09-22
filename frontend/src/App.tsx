@@ -10,6 +10,8 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { TasksPage } from './pages/TasksPage';
+import { EngagementsPage } from './pages/EngagementsPage';
+import { ServiceTypesPage } from './pages/ServiceTypesPage';
 import { WorkflowsPage } from './pages/WorkflowsPage';
 import { TemplatesPage } from './pages/TemplatesPage';
 import { RecurringTasksPage } from './pages/RecurringTasksPage';
@@ -60,6 +62,8 @@ export const App: React.FC = () => {
               >
                 <Route index element={<Navigate to="/dashboard" replace />} />
                 <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="engagements" element={<EngagementsPage />} />
+                <Route path="service-types" element={<ServiceTypesPage />} />
                 <Route path="tasks" element={<TasksPage />} />
                 <Route path="workflows" element={<WorkflowsPage />} />
                 <Route path="templates" element={<TemplatesPage />} />

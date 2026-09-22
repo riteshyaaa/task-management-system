@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { taskController } from './task.controller';
 import commentRouter from '../comments/comment.routes';
 import { authenticate } from '../../middleware/auth.middleware';
@@ -10,7 +10,8 @@ import {
   updateTaskSchema,
   filterTasksQuerySchema,
   reorderTaskSchema,
-  taskWatcherSchema
+  taskWatcherSchema,
+  requestChangesSchema
 } from './task.schema';
 
 const router = Router();
@@ -63,6 +64,19 @@ router.patch(
   requirePermission('tasks:update'),
   validate({ body: updateTaskSchema }),
   taskController.updateTask
+);
+
+router.post(
+  '/:taskId/approve',
+  requirePermission('tasks:update'),
+  taskController.approveTask
+);
+
+router.post(
+  '/:taskId/request-changes',
+  requirePermission('tasks:update'),
+  validate({ body: requestChangesSchema }),
+  taskController.requestChanges
 );
 
 router.post(

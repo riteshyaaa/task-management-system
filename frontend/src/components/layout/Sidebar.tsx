@@ -3,6 +3,8 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   CheckSquare,
+  Briefcase,
+  Wrench,
   GitBranch,
   FileCode2,
   Repeat,
@@ -28,13 +30,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
   const navItems = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/engagements', label: 'Engagements', icon: Briefcase },
+    { to: '/service-types', label: 'Service Catalog', icon: Wrench },
     { to: '/tasks', label: 'Kanban Board', icon: CheckSquare },
     { to: '/workflows', label: 'Workflows', icon: GitBranch },
     { to: '/templates', label: 'Templates & Rules', icon: FileCode2 },
     { to: '/recurring', label: 'Recurring Tasks', icon: Repeat },
     { to: '/analytics', label: 'Engagement & Streaks', icon: Flame },
     { to: '/audit', label: 'Audit Trail', icon: History },
-    { to: '/client', label: 'client Members', icon: Users },
+    { to: '/client', label: 'Client Members', icon: Users },
   ];
 
   return (

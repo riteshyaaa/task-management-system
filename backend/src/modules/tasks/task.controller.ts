@@ -1,4 +1,4 @@
-﻿import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { taskService } from './task.service';
 import { sendCreated, sendSuccess } from '../../shared/utils/response.util';
 import { UnauthorizedError, BadRequestError } from '../../shared/errors/app-error';
@@ -37,8 +37,39 @@ export class TaskController {
   async updateTask(req: Request, res: Response, next: NextFunction) {
     try {
       if (!req.user) throw new UnauthorizedError('Authentication required');
-      const task = await taskService.updateTask(req.params.taskId, req.user.id, req.body, req.auditContext);
+      const task = await taskService.updateTask(
+        req.params.taskId,
+        req.user.id,
+        req.body,
+        req.user.roles,
+        req.auditContext
+      );
       return sendSuccess(res, task, 'Task updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async approveTask(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) throw new UnauthorizedError('Authentication required');
+      const task = await taskService.approveTask(req.params.taskId, req.user.id, req.auditContext);
+      return sendSuccess(res, task, 'Task approved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async requestChanges(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) throw new UnauthorizedError('Authentication required');
+      const task = await taskService.requestChanges(
+        req.params.taskId,
+        req.user.id,
+        req.body.reason,
+        req.auditContext
+      );
+      return sendSuccess(res, task, 'Changes requested on task');
     } catch (error) {
       next(error);
     }

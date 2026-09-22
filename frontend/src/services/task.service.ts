@@ -1,4 +1,4 @@
-﻿import { apiClient } from './api.client';
+import { apiClient } from './api.client';
 import { CreateTaskPayload, Task, TaskComment, UpdateTaskPayload } from '../types/task.types';
 
 export interface TaskQueryParams {
@@ -6,6 +6,7 @@ export interface TaskQueryParams {
   status?: string;
   priority?: string;
   assigneeId?: string;
+  engagementId?: string;
   search?: string;
   parentTaskId?: string | null;
   page?: number;
@@ -41,6 +42,18 @@ export const taskService = {
 
   async updateTask(taskId: string, payload: UpdateTaskPayload): Promise<Task> {
     const response = await apiClient.patch<{ success: boolean; data: Task }>(`/tasks/${taskId}`, payload);
+    return response.data.data;
+  },
+
+  async approveTask(taskId: string): Promise<Task> {
+    const response = await apiClient.post<{ success: boolean; data: Task }>(`/tasks/${taskId}/approve`);
+    return response.data.data;
+  },
+
+  async requestChanges(taskId: string, reason: string): Promise<Task> {
+    const response = await apiClient.post<{ success: boolean; data: Task }>(`/tasks/${taskId}/request-changes`, {
+      reason,
+    });
     return response.data.data;
   },
 

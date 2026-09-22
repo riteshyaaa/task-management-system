@@ -1,4 +1,14 @@
-﻿export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
+export type TaskStatus =
+  | 'NOT_STARTED'
+  | 'TODO'
+  | 'IN_PROGRESS'
+  | 'READY_FOR_REVIEW'
+  | 'WAITING_FOR_CLIENT'
+  | 'CHANGES_REQUESTED'
+  | 'COMPLETED'
+  | 'REVIEW'
+  | 'DONE';
+
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 export interface Label {
@@ -55,6 +65,7 @@ export interface Task {
   version: number;
   metadata?: Record<string, any>;
   clientId: string;
+  engagementId?: string | null;
   assigneeId?: string | null;
   reporterId: string;
   parentTaskId?: string | null;
@@ -64,6 +75,11 @@ export interface Task {
   updatedAt: string;
 
   // Populated relations
+  engagement?: {
+    id: string;
+    title: string;
+    status: string;
+  } | null;
   assignee?: {
     id: string;
     firstName: string;
@@ -96,6 +112,8 @@ export interface CreateTaskPayload {
   description?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
+  clientId?: string;
+  engagementId?: string;
   assigneeId?: string;
   dueDate?: string;
   startDate?: string;
@@ -111,6 +129,7 @@ export interface UpdateTaskPayload {
   description?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
+  engagementId?: string | null;
   assigneeId?: string | null;
   dueDate?: string | null;
   startDate?: string | null;

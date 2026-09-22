@@ -18,6 +18,8 @@ import workflowsRouter from './modules/workflows/workflow.routes';
 import recurringRouter from './modules/recurring/recurring.routes';
 import auditRouter from './modules/audit/audit.routes';
 import engagementRouter from './modules/engagement/engagement.routes';
+import engagementsRouter from './modules/engagements/engagement.routes';
+import serviceTypeRouter from './modules/service-types/service-type.routes';
 import dashboardRouter from './modules/dashboard/dashboard.routes';
 
 export function createApp(): Express {
@@ -92,6 +94,8 @@ export function createApp(): Express {
   app.use('/api/v1/recurring', recurringRouter);
   app.use('/api/v1/audit', auditRouter);
   app.use('/api/v1/engagement', engagementRouter);
+  app.use('/api/v1/engagements', engagementsRouter);
+  app.use('/api/v1/service-types', serviceTypeRouter);
   app.use('/api/v1/dashboard', dashboardRouter);
 
   // 8. 404 Route Catch-All

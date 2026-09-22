@@ -1,6 +1,6 @@
-﻿import { TaskStatus, TaskPriority, ActivityType, AuditOperation, Prisma } from '@prisma/client';
+import { TaskStatus, TaskPriority, ActivityType, AuditOperation, Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
-import { NotFoundError, BadRequestError, ConflictError } from '../../shared/errors/app-error';
+import { NotFoundError, BadRequestError, ForbiddenError, ConflictError } from '../../shared/errors/app-error';
 import { CreateTaskInput, UpdateTaskInput, FilterTasksQuery, ReorderTaskInput } from './task.schema';
 import { AuditContext } from '../../shared/types/express';
 import { auditService } from '../audit/audit.service';
@@ -39,6 +39,7 @@ export class TaskService {
         title: input.title,
         description: input.description,
         clientId: input.clientId,
+        engagementId: input.engagementId,
         reporterId,
         assigneeId: input.assigneeId,
         status: input.status,
@@ -71,6 +72,9 @@ export class TaskService {
         },
         reporter: {
           select: { id: true, email: true, firstName: true, lastName: true, avatarUrl: true }
+        },
+        engagement: {
+          select: { id: true, title: true, serviceType: { select: { id: true, name: true } } }
         },
         taskLabels: {
           include: {
@@ -121,11 +125,20 @@ export class TaskService {
   /**
    * List tasks with comprehensive filtering and pagination
    */
-  async listTasks(clientId: string, query: FilterTasksQuery) {
+  async listTasks(clientId?: string, query: Partial<FilterTasksQuery> = {}) {
     const where: Prisma.TaskWhereInput = {
-      clientId,
       isDeleted: false
     };
+
+    if (clientId) {
+      where.clientId = clientId;
+    } else if (query.clientId) {
+      where.clientId = query.clientId;
+    }
+
+    if (query.engagementId) {
+      where.engagementId = query.engagementId;
+    }
 
     // Filter by status (single or array)
     if (query.status) {
@@ -217,6 +230,9 @@ export class TaskService {
           reporter: {
             select: { id: true, email: true, firstName: true, lastName: true, avatarUrl: true }
           },
+          engagement: {
+            select: { id: true, title: true, serviceType: { select: { id: true, name: true } } }
+          },
           taskLabels: {
             include: {
               label: true
@@ -261,6 +277,9 @@ export class TaskService {
         },
         reporter: {
           select: { id: true, email: true, firstName: true, lastName: true, avatarUrl: true }
+        },
+        engagement: {
+          select: { id: true, title: true, status: true, periodStart: true, periodEnd: true, serviceType: { select: { id: true, name: true } } }
         },
         taskLabels: {
           include: {
@@ -312,15 +331,38 @@ export class TaskService {
   }
 
   /**
-   * Update task with optimistic concurrency locking and label sync
+   * Update task with optimistic concurrency locking, label sync, and security enforcement
    */
-  async updateTask(taskId: string, userId: string, input: UpdateTaskInput, auditContext?: AuditContext) {
+  async updateTask(
+    taskId: string,
+    userId: string,
+    input: UpdateTaskInput,
+    userRoles?: string[],
+    auditContext?: AuditContext
+  ) {
     const task = await prisma.task.findUnique({
       where: { id: taskId }
     });
 
     if (!task || task.isDeleted) {
       throw new NotFoundError('Task not found or has been deleted');
+    }
+
+    const isPrivileged = userRoles && (userRoles.includes('ADMIN') || userRoles.includes('MANAGER'));
+
+    // Server-Side Security Rule: Task ownership protection
+    // TEAM_MEMBER cannot modify tasks assigned to another member
+    if (!isPrivileged && task.assigneeId && task.assigneeId !== userId) {
+      throw new ForbiddenError('Team members cannot modify tasks assigned to another team member');
+    }
+
+    // Server-Side Security Rule: Self-approval prevention
+    // When a task is in READY_FOR_REVIEW (or REVIEW), the assignee cannot transition to COMPLETED (or DONE)
+    const isCurrentlyInReview = task.status === TaskStatus.READY_FOR_REVIEW || (task.status as any) === 'REVIEW';
+    const isTargetCompleted = input.status === TaskStatus.COMPLETED || (input.status as any) === 'DONE';
+
+    if (isCurrentlyInReview && isTargetCompleted && task.assigneeId === userId) {
+      throw new ForbiddenError('Assignees are not permitted to approve or complete their own tasks');
     }
 
     // Optimistic Concurrency Control
@@ -334,9 +376,17 @@ export class TaskService {
 
     // Handle CompletedAt automation
     let completedAt = input.completedAt ? new Date(input.completedAt) : undefined;
-    if (input.status === TaskStatus.DONE && !task.completedAt && !completedAt) {
+    if (
+      (input.status === TaskStatus.COMPLETED || input.status === TaskStatus.DONE) &&
+      !task.completedAt &&
+      !completedAt
+    ) {
       completedAt = new Date();
-    } else if (input.status && input.status !== TaskStatus.DONE) {
+    } else if (
+      input.status &&
+      input.status !== TaskStatus.COMPLETED &&
+      input.status !== TaskStatus.DONE
+    ) {
       completedAt = null as any;
     }
 
@@ -368,6 +418,7 @@ export class TaskService {
         estimatedHours: input.estimatedHours !== undefined ? (input.estimatedHours !== null ? new Prisma.Decimal(input.estimatedHours) : null) : undefined,
         actualHours: input.actualHours !== undefined ? (input.actualHours !== null ? new Prisma.Decimal(input.actualHours) : null) : undefined,
         assigneeId: input.assigneeId !== undefined ? input.assigneeId : undefined,
+        engagementId: input.engagementId !== undefined ? input.engagementId : undefined,
         parentTaskId: input.parentTaskId !== undefined ? input.parentTaskId : undefined,
         position: input.position !== undefined ? input.position : undefined,
         metadata: input.metadata || undefined,
@@ -379,6 +430,9 @@ export class TaskService {
         },
         reporter: {
           select: { id: true, email: true, firstName: true, lastName: true, avatarUrl: true }
+        },
+        engagement: {
+          select: { id: true, title: true, serviceType: { select: { id: true, name: true } } }
         },
         taskLabels: {
           include: {
@@ -393,9 +447,10 @@ export class TaskService {
     });
 
     // Log Activity
-    const activityType = input.status === TaskStatus.DONE
-      ? ActivityType.TASK_COMPLETE
-      : ActivityType.TASK_UPDATE;
+    const activityType =
+      input.status === TaskStatus.COMPLETED || input.status === TaskStatus.DONE
+        ? ActivityType.TASK_COMPLETE
+        : ActivityType.TASK_UPDATE;
 
     await prisma.userActivityLog.create({
       data: {
@@ -408,6 +463,161 @@ export class TaskService {
         metadata: {
           updatedFields: Object.keys(input),
           status: updatedTask.status
+        }
+      }
+    });
+
+    // Record Audit
+    await auditService.recordAudit({
+      entityType: 'Task',
+      entityId: task.id,
+      operation: AuditOperation.UPDATE,
+      oldValues: task as any,
+      newValues: updatedTask as any,
+      performedById: userId,
+      ipAddress: auditContext?.ipAddress,
+      userAgent: auditContext?.userAgent
+    });
+
+    return updatedTask;
+  }
+
+  /**
+   * Approve task review: Transition from READY_FOR_REVIEW -> COMPLETED
+   */
+  async approveTask(taskId: string, userId: string, auditContext?: AuditContext) {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId }
+    });
+
+    if (!task || task.isDeleted) {
+      throw new NotFoundError('Task not found or has been deleted');
+    }
+
+    if (task.status !== TaskStatus.READY_FOR_REVIEW && (task.status as any) !== 'REVIEW') {
+      throw new BadRequestError(`Task is not ready for review (current status: ${task.status})`);
+    }
+
+    // Self-approval prevention
+    if (task.assigneeId === userId) {
+      throw new ForbiddenError('Assignees are not permitted to approve their own tasks');
+    }
+
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data: {
+        status: TaskStatus.COMPLETED,
+        completedAt: new Date(),
+        version: { increment: 1 }
+      },
+      include: {
+        assignee: {
+          select: { id: true, email: true, firstName: true, lastName: true, avatarUrl: true }
+        },
+        reporter: {
+          select: { id: true, email: true, firstName: true, lastName: true, avatarUrl: true }
+        }
+      }
+    });
+
+    // Add approval comment
+    await prisma.taskComment.create({
+      data: {
+        taskId,
+        userId,
+        content: 'Task reviewed and approved.'
+      }
+    });
+
+    // Log Activity
+    await prisma.userActivityLog.create({
+      data: {
+        userId,
+        activityType: ActivityType.TASK_COMPLETE,
+        entityType: 'Task',
+        entityId: task.id,
+        clientId: task.clientId,
+        ipAddress: auditContext?.ipAddress,
+        metadata: {
+          action: 'TASK_APPROVED',
+          fromStatus: task.status,
+          toStatus: TaskStatus.COMPLETED
+        }
+      }
+    });
+
+    // Record Audit
+    await auditService.recordAudit({
+      entityType: 'Task',
+      entityId: task.id,
+      operation: AuditOperation.UPDATE,
+      oldValues: task as any,
+      newValues: updatedTask as any,
+      performedById: userId,
+      ipAddress: auditContext?.ipAddress,
+      userAgent: auditContext?.userAgent
+    });
+
+    return updatedTask;
+  }
+
+  /**
+   * Request changes on task: Transition from READY_FOR_REVIEW -> CHANGES_REQUESTED
+   */
+  async requestChanges(taskId: string, userId: string, reason: string, auditContext?: AuditContext) {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId }
+    });
+
+    if (!task || task.isDeleted) {
+      throw new NotFoundError('Task not found or has been deleted');
+    }
+
+    if (task.status !== TaskStatus.READY_FOR_REVIEW && (task.status as any) !== 'REVIEW') {
+      throw new BadRequestError(`Task is not in review state (current status: ${task.status})`);
+    }
+
+    if (!reason || reason.trim() === '') {
+      throw new BadRequestError('A reason/feedback must be provided when requesting changes');
+    }
+
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data: {
+        status: TaskStatus.CHANGES_REQUESTED,
+        version: { increment: 1 }
+      },
+      include: {
+        assignee: {
+          select: { id: true, email: true, firstName: true, lastName: true, avatarUrl: true }
+        },
+        reporter: {
+          select: { id: true, email: true, firstName: true, lastName: true, avatarUrl: true }
+        }
+      }
+    });
+
+    // Add feedback comment
+    await prisma.taskComment.create({
+      data: {
+        taskId,
+        userId,
+        content: `Changes Requested: ${reason.trim()}`
+      }
+    });
+
+    // Log Activity
+    await prisma.userActivityLog.create({
+      data: {
+        userId,
+        activityType: ActivityType.TASK_UPDATE,
+        entityType: 'Task',
+        entityId: task.id,
+        clientId: task.clientId,
+        ipAddress: auditContext?.ipAddress,
+        metadata: {
+          action: 'CHANGES_REQUESTED',
+          reason: reason.trim()
         }
       }
     });
@@ -464,7 +674,12 @@ export class TaskService {
         data: {
           status: targetStatus,
           position: targetPosition,
-          completedAt: targetStatus === TaskStatus.DONE ? new Date() : (currentStatus === TaskStatus.DONE ? null : undefined),
+          completedAt:
+            targetStatus === TaskStatus.COMPLETED || targetStatus === TaskStatus.DONE
+              ? new Date()
+              : currentStatus === TaskStatus.COMPLETED || currentStatus === TaskStatus.DONE
+              ? null
+              : undefined,
           version: { increment: 1 }
         }
       });
@@ -553,7 +768,12 @@ export class TaskService {
   /**
    * Add a subtask to a parent task
    */
-  async addSubtask(parentTaskId: string, reporterId: string, input: { title: string; description?: string; assigneeId?: string }, auditContext?: AuditContext) {
+  async addSubtask(
+    parentTaskId: string,
+    reporterId: string,
+    input: { title: string; description?: string; assigneeId?: string },
+    auditContext?: AuditContext
+  ) {
     const parent = await prisma.task.findUnique({
       where: { id: parentTaskId }
     });
@@ -561,21 +781,25 @@ export class TaskService {
       throw new NotFoundError('Parent task not found or has been deleted');
     }
 
-    const subtask = await this.createTask(reporterId, {
-      title: input.title,
-      description: input.description,
-      clientId: parent.clientId,
-      parentTaskId: parent.id,
-      assigneeId: input.assigneeId,
-      status: TaskStatus.TODO,
-      priority: TaskPriority.MEDIUM,
-      labelIds: [],
-      metadata: {}
-    }, auditContext);
+    const subtask = await this.createTask(
+      reporterId,
+      {
+        title: input.title,
+        description: input.description,
+        clientId: parent.clientId,
+        parentTaskId: parent.id,
+        assigneeId: input.assigneeId,
+        status: TaskStatus.NOT_STARTED,
+        priority: TaskPriority.MEDIUM,
+        labelIds: [],
+        metadata: {}
+      },
+      auditContext
+    );
 
     return {
       ...subtask,
-      isCompleted: subtask.status === TaskStatus.DONE
+      isCompleted: subtask.status === TaskStatus.COMPLETED || (subtask.status as any) === TaskStatus.DONE
     };
   }
 }

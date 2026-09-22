@@ -14,14 +14,26 @@ generator client {
 enum RoleName {
   ADMIN
   MANAGER
+  TEAM_MEMBER
   MEMBER
 }
 
 enum TaskStatus {
-  TODO
+  NOT_STARTED
   IN_PROGRESS
+  READY_FOR_REVIEW
+  WAITING_FOR_CLIENT
+  CHANGES_REQUESTED
+  COMPLETED
+  TODO
   REVIEW
   DONE
+}
+
+enum EngagementStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
 }
 
 enum TaskPriority {
@@ -197,6 +209,8 @@ model User {
   notifications       Notification[]
   automationRules     AutomationRule[]     @relation("RuleCreator")
   taskTemplates       TaskTemplate[]       @relation("TemplateCreator")
+  managedEngagements  Engagement[]         @relation("EngagementManager")
+  createdEngagements  Engagement[]         @relation("EngagementCreator")
 
   @@index([email, isActive])
   @@index([isDeleted])
@@ -301,6 +315,7 @@ model Client {
   labels          Label[]
   automationRules AutomationRule[]
   templates       TaskTemplate[]
+  engagements     Engagement[]
 
   @@map("teams")
 }
@@ -318,6 +333,54 @@ model ClientMember {
   @@unique([clientId, userId])
   @@index([userId])
   @@map("team_members")
+}
+
+// ==========================================
+// 1B. SERVICE TYPES & ENGAGEMENTS
+// ==========================================
+
+model ServiceType {
+  id             String              @id @default(uuid()) @db.Uuid
+  name           String              @unique @db.VarChar(100)
+  description    String?             @db.Text
+  defaultCadence RecurrenceFrequency @default(MONTHLY) @map("default_cadence")
+  estimatedHours Decimal?            @map("estimated_hours") @db.Decimal(6, 2)
+  isActive       Boolean             @default(true) @map("is_active")
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  engagements    Engagement[]
+  taskTemplates  TaskTemplate[]
+
+  @@map("service_types")
+}
+
+model Engagement {
+  id            String           @id @default(uuid()) @db.Uuid
+  clientId      String           @map("team_id") @db.Uuid
+  serviceTypeId String           @map("service_type_id") @db.Uuid
+  title         String           @db.VarChar(255)
+  description   String?          @db.Text
+  status        EngagementStatus @default(ACTIVE)
+  periodStart   DateTime         @map("period_start") @db.Date
+  periodEnd     DateTime         @map("period_end") @db.Date
+  dueDate       DateTime?        @map("due_date") @db.Timestamptz(6)
+  managerId     String?          @map("manager_id") @db.Uuid
+  createdById   String           @map("created_by") @db.Uuid
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  client        Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  serviceType   ServiceType      @relation(fields: [serviceTypeId], references: [id], onDelete: Restrict)
+  manager       User?            @relation("EngagementManager", fields: [managerId], references: [id], onDelete: SetNull)
+  createdBy     User             @relation("EngagementCreator", fields: [createdById], references: [id])
+  tasks         Task[]
+
+  @@unique([clientId, serviceTypeId, periodStart, periodEnd])
+  @@index([clientId, status])
+  @@index([managerId])
+  @@index([serviceTypeId])
+  @@map("engagements")
 }
 
 // ==========================================
@@ -346,6 +409,7 @@ model Task {
   assigneeId     String?       @map("assignee_id") @db.Uuid
   reporterId     String        @map("reporter_id") @db.Uuid
   clientId         String        @map("team_id") @db.Uuid
+  engagementId   String?       @map("engagement_id") @db.Uuid
   parentTaskId   String?       @map("parent_task_id") @db.Uuid
   templateId     String?       @map("template_id") @db.Uuid
   recurrenceId   String?       @map("recurrence_id") @db.Uuid
@@ -357,6 +421,7 @@ model Task {
   assignee       User?         @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   reporter       User          @relation("TaskReporter", fields: [reporterId], references: [id], onDelete: Restrict)
   client           Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  engagement     Engagement?   @relation(fields: [engagementId], references: [id], onDelete: Cascade)
   parentTask     Task?         @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
   subtasks       Task[]        @relation("SubTasks")
   template       TaskTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
@@ -373,6 +438,7 @@ model Task {
   @@index([clientId, status, position])
   @@index([assigneeId, status])
   @@index([reporterId])
+  @@index([engagementId])
   @@index([parentTaskId])
   @@index([dueDate])
   @@index([isDeleted])
@@ -445,6 +511,7 @@ model TaskWatcher {
 model TaskTemplate {
   id             String         @id @default(uuid()) @db.Uuid
   clientId         String         @map("team_id") @db.Uuid
+  serviceTypeId  String?        @map("service_type_id") @db.Uuid
   name           String         @db.VarChar(128)
   description    String?        @db.Text
   defaultTitle   String         @map("default_title") @db.VarChar(255)
@@ -457,11 +524,13 @@ model TaskTemplate {
   updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   client           Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  serviceType    ServiceType?   @relation(fields: [serviceTypeId], references: [id], onDelete: SetNull)
   createdBy      User           @relation("TemplateCreator", fields: [createdById], references: [id])
   templateItems  TemplateItem[]
   generatedTasks Task[]
 
   @@unique([clientId, name])
+  @@index([serviceTypeId])
   @@map("task_templates")
 }
 

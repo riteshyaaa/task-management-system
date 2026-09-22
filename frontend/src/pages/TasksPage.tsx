@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
@@ -11,24 +11,35 @@ import {
   Sparkles,
   CheckSquare,
   Layers,
+  Briefcase,
+  CheckCircle2,
+  RotateCcw,
+  ShieldCheck
 } from 'lucide-react';
 import { useClient } from '../context/ClientContext';
 import { useToast } from '../context/ToastContext';
 import { taskService } from '../services/task.service';
 import { templateService } from '../services/template.service';
+import { engagementService } from '../services/engagement.service';
 import { Task, TaskPriority, TaskStatus, TaskComment } from '../types/task.types';
 import { TaskTemplate } from '../types/template.types';
+import { Engagement } from '../types/engagement.types';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { Badge } from '../components/ui/Badge';
 import { formatDate, formatRelativeTime } from '../utils/formatters';
 
-const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
-  { id: 'TODO', label: 'To Do', color: 'border-slate-700' },
-  { id: 'IN_PROGRESS', label: 'In Progress', color: 'border-sky-500/40' },
-  { id: 'REVIEW', label: 'In Review', color: 'border-purple-500/40' },
-  { id: 'DONE', label: 'Done', color: 'border-emerald-500/40' },
+const COLUMNS: { id: string; statuses: TaskStatus[]; label: string; color: string }[] = [
+  { id: 'TODO', statuses: ['TODO', 'NOT_STARTED'], label: 'To Do', color: 'border-slate-700' },
+  { id: 'IN_PROGRESS', statuses: ['IN_PROGRESS'], label: 'In Progress', color: 'border-sky-500/40' },
+  {
+    id: 'REVIEW',
+    statuses: ['READY_FOR_REVIEW', 'REVIEW', 'CHANGES_REQUESTED', 'WAITING_FOR_CLIENT'],
+    label: 'In Review',
+    color: 'border-purple-500/40'
+  },
+  { id: 'COMPLETED', statuses: ['COMPLETED', 'DONE'], label: 'Done', color: 'border-emerald-500/40' }
 ];
 
 export const TasksPage: React.FC = () => {
@@ -37,14 +48,17 @@ export const TasksPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
+  const [selectedEngagementFilter, setSelectedEngagementFilter] = useState<string>('ALL');
 
   // Create Task Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [selectedEngagementId, setSelectedEngagementId] = useState<string>('');
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>('MEDIUM');
@@ -60,8 +74,18 @@ export const TasksPage: React.FC = () => {
   const [newComment, setNewComment] = useState('');
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
 
-  // Check URL params for create action
+  // Request changes modal state
+  const [isChangesModalOpen, setIsChangesModalOpen] = useState(false);
+  const [changeReason, setChangeReason] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+
+  // Check URL params for create action or engagement filter
   useEffect(() => {
+    const engParam = searchParams.get('engagementId');
+    if (engParam) {
+      setSelectedEngagementFilter(engParam);
+      setSelectedEngagementId(engParam);
+    }
     if (searchParams.get('create') === 'true') {
       setIsCreateModalOpen(true);
       searchParams.delete('create');
@@ -69,15 +93,25 @@ export const TasksPage: React.FC = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  // Load tasks & templates
+  // Load tasks, templates & engagements
   const loadTasks = async () => {
     if (!currentClient) return;
     try {
       setLoading(true);
-      const res = await taskService.getTasks({ clientId: currentClient.id, limit: 100 });
-      setTasks(res.tasks);
+      const [taskRes, engRes, tplRes] = await Promise.all([
+        taskService.getTasks({
+          clientId: currentClient.id,
+          engagementId: selectedEngagementFilter !== 'ALL' ? selectedEngagementFilter : undefined,
+          limit: 100
+        }),
+        engagementService.listEngagements({ clientId: currentClient.id }),
+        templateService.getTemplates(currentClient.id)
+      ]);
+      setTasks(taskRes.tasks);
+      setEngagements(engRes.items);
+      setTemplates(tplRes);
     } catch (err) {
-      console.error('Failed to load tasks:', err);
+      console.error('Failed to load tasks data:', err);
       showToast('Failed to load tasks', 'error');
     } finally {
       setLoading(false);
@@ -86,13 +120,7 @@ export const TasksPage: React.FC = () => {
 
   useEffect(() => {
     loadTasks();
-    if (currentClient) {
-      templateService
-        .getTemplates(currentClient.id)
-        .then(setTemplates)
-        .catch((err) => console.error('Failed to load templates:', err));
-    }
-  }, [currentClient?.id]);
+  }, [currentClient?.id, selectedEngagementFilter]);
 
   // Handle Template selection change
   const handleTemplateSelect = (templateId: string) => {
@@ -121,12 +149,11 @@ export const TasksPage: React.FC = () => {
     try {
       setSubmitting(true);
       if (selectedTemplateId) {
-        // Instantiate template
         await templateService.instantiateTemplate(selectedTemplateId, {
           clientId: currentClient.id,
           variables: templateVariables,
           assigneeId: newTaskAssigneeId || undefined,
-          dueDate: newTaskDueDate || undefined,
+          dueDate: newTaskDueDate || undefined
         });
         showToast('Task generated from template successfully!', 'success');
       } else {
@@ -134,9 +161,10 @@ export const TasksPage: React.FC = () => {
           title: newTaskTitle,
           description: newTaskDescription,
           priority: newTaskPriority,
+          engagementId: selectedEngagementId || undefined,
           assigneeId: newTaskAssigneeId || undefined,
           dueDate: newTaskDueDate || undefined,
-          estimatedHours: newTaskEstimatedHours ? Number(newTaskEstimatedHours) : undefined,
+          estimatedHours: newTaskEstimatedHours ? Number(newTaskEstimatedHours) : undefined
         });
         showToast('Task created successfully!', 'success');
       }
@@ -153,6 +181,7 @@ export const TasksPage: React.FC = () => {
 
   const resetCreateForm = () => {
     setSelectedTemplateId('');
+    setSelectedEngagementId('');
     setNewTaskTitle('');
     setNewTaskDescription('');
     setNewTaskPriority('MEDIUM');
@@ -181,7 +210,7 @@ export const TasksPage: React.FC = () => {
     try {
       await taskService.updateTask(taskId, {
         status: newStatus,
-        version: previousVersion, // Pass OCC version
+        version: previousVersion
       });
       showToast(`Moved to ${newStatus.replace('_', ' ')}`, 'success');
     } catch (err: any) {
@@ -206,6 +235,46 @@ export const TasksPage: React.FC = () => {
       setComments(commentsList);
     } catch (err) {
       console.error('Failed to load task details:', err);
+    }
+  };
+
+  // Approve Task
+  const handleApproveTask = async () => {
+    if (!selectedTask) return;
+    try {
+      setReviewSubmitting(true);
+      const updated = await taskService.approveTask(selectedTask.id);
+      setSelectedTask(updated);
+      setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      showToast('Task approved and completed successfully!', 'success');
+    } catch (err: any) {
+      const msg = err.response?.data?.error?.message || err.response?.data?.message || 'Failed to approve task';
+      showToast(msg, 'error');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  // Request Changes on Task
+  const handleRequestChanges = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTask || !changeReason.trim()) return;
+
+    try {
+      setReviewSubmitting(true);
+      const updated = await taskService.requestChanges(selectedTask.id, changeReason.trim());
+      setSelectedTask(updated);
+      setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      setIsChangesModalOpen(false);
+      setChangeReason('');
+      showToast('Changes requested on deliverable', 'success');
+      const commentsList = await taskService.getComments(selectedTask.id);
+      setComments(commentsList);
+    } catch (err: any) {
+      const msg = err.response?.data?.error?.message || err.response?.data?.message || 'Failed to request changes';
+      showToast(msg, 'error');
+    } finally {
+      setReviewSubmitting(false);
     }
   };
 
@@ -244,7 +313,7 @@ export const TasksPage: React.FC = () => {
   // Toggle Subtask Status
   const handleToggleSubtask = async (subtaskId: string, currentStatus: TaskStatus) => {
     if (!selectedTask) return;
-    const nextStatus = currentStatus === 'DONE' ? 'TODO' : 'DONE';
+    const nextStatus = currentStatus === 'COMPLETED' || currentStatus === 'DONE' ? 'TODO' : 'COMPLETED';
 
     try {
       await taskService.updateSubtask(selectedTask.id, subtaskId, { status: nextStatus });
@@ -252,7 +321,7 @@ export const TasksPage: React.FC = () => {
         if (!prev) return null;
         return {
           ...prev,
-          subtasks: prev.subtasks?.map((s) => (s.id === subtaskId ? { ...s, status: nextStatus } : s)),
+          subtasks: prev.subtasks?.map((s) => (s.id === subtaskId ? { ...s, status: nextStatus } : s))
         };
       });
     } catch (err) {
@@ -266,7 +335,8 @@ export const TasksPage: React.FC = () => {
       const matchesSearch =
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        `TASK-${task.taskNumber}`.toLowerCase().includes(searchQuery.toLowerCase());
+        `TASK-${task.taskNumber}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (task.engagement?.title && task.engagement.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
       const matchesPriority = priorityFilter === 'ALL' || task.priority === priorityFilter;
 
@@ -290,7 +360,9 @@ export const TasksPage: React.FC = () => {
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
             Kanban Board <Layers className="w-5 h-5 text-indigo-400" />
           </h1>
-          <p className="text-xs text-slate-400">Manage, organize, and orchestrate tasks in real time</p>
+          <p className="text-xs text-slate-400">
+            Manage deliverables, review workflows, and orchestrate client task execution
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -315,6 +387,21 @@ export const TasksPage: React.FC = () => {
             <option value="LOW">Low</option>
           </select>
 
+          {engagements.length > 0 && (
+            <select
+              value={selectedEngagementFilter}
+              onChange={(e) => setSelectedEngagementFilter(e.target.value)}
+              className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 cursor-pointer max-w-[160px] truncate"
+            >
+              <option value="ALL">All Engagements</option>
+              {engagements.map((eng) => (
+                <option key={eng.id} value={eng.id}>
+                  {eng.title}
+                </option>
+              ))}
+            </select>
+          )}
+
           <Button variant="primary" leftIcon={<Plus className="w-4 h-4" />} onClick={() => setIsCreateModalOpen(true)}>
             Add Task
           </Button>
@@ -324,7 +411,7 @@ export const TasksPage: React.FC = () => {
       {/* Kanban Board Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 items-start">
         {COLUMNS.map((col) => {
-          const colTasks = filteredTasks.filter((t) => t.status === col.id);
+          const colTasks = filteredTasks.filter((t) => col.statuses.includes(t.status));
 
           return (
             <div
@@ -364,20 +451,27 @@ export const TasksPage: React.FC = () => {
                       <span className="text-[10px] font-mono font-bold text-indigo-400">
                         TASK-{task.taskNumber}
                       </span>
-                      <Badge
-                        variant={
-                          task.priority === 'URGENT'
-                            ? 'danger'
-                            : task.priority === 'HIGH'
-                            ? 'warning'
-                            : task.priority === 'MEDIUM'
-                            ? 'primary'
-                            : 'default'
-                        }
-                        size="sm"
-                      >
-                        {task.priority}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        {task.status === 'CHANGES_REQUESTED' && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 bg-rose-950/80 border border-rose-500/40 text-rose-300 rounded">
+                            Changes Req.
+                          </span>
+                        )}
+                        <Badge
+                          variant={
+                            task.priority === 'URGENT'
+                              ? 'danger'
+                              : task.priority === 'HIGH'
+                              ? 'warning'
+                              : task.priority === 'MEDIUM'
+                              ? 'primary'
+                              : 'default'
+                          }
+                          size="sm"
+                        >
+                          {task.priority}
+                        </Badge>
+                      </div>
                     </div>
 
                     <h4 className="text-xs font-semibold text-white leading-snug line-clamp-2 group-hover:text-indigo-200 transition-colors">
@@ -388,6 +482,13 @@ export const TasksPage: React.FC = () => {
                       <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
                         {task.description}
                       </p>
+                    )}
+
+                    {task.engagement && (
+                      <div className="flex items-center gap-1 mt-2.5 text-[10px] text-indigo-300/80 bg-indigo-950/40 px-2 py-0.5 rounded border border-indigo-500/20 max-w-fit truncate">
+                        <Briefcase className="w-3 h-3 text-indigo-400 shrink-0" />
+                        <span className="truncate">{task.engagement.title}</span>
+                      </div>
                     )}
 
                     {/* Task Footer */}
@@ -420,19 +521,22 @@ export const TasksPage: React.FC = () => {
                     </div>
 
                     {/* Quick Move Trigger Bar */}
-                    <div className="hidden group-hover:flex items-center justify-end gap-1 mt-2 pt-2 border-t border-slate-800/60">
-                      {COLUMNS.filter((c) => c.id !== task.status).map((targetCol) => (
-                        <button
-                          key={targetCol.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStatusChange(task.id, targetCol.id);
-                          }}
-                          className="px-2 py-0.5 rounded text-[9px] font-semibold bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white transition-colors"
-                        >
-                          â†’ {targetCol.label}
-                        </button>
-                      ))}
+                    <div className="hidden group-hover:flex items-center justify-end gap-1 mt-2 pt-2 border-t border-slate-800/60 flex-wrap">
+                      {COLUMNS.filter((c) => !c.statuses.includes(task.status)).map((targetCol) => {
+                        const targetStatus = targetCol.id === 'REVIEW' ? 'READY_FOR_REVIEW' : (targetCol.id === 'COMPLETED' ? 'COMPLETED' : targetCol.id as TaskStatus);
+                        return (
+                          <button
+                            key={targetCol.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatusChange(task.id, targetStatus);
+                            }}
+                            className="px-2 py-0.5 rounded text-[9px] font-semibold bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white transition-colors"
+                          >
+                            → {targetCol.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
@@ -450,30 +554,53 @@ export const TasksPage: React.FC = () => {
           resetCreateForm();
         }}
         title="Create New Task"
-        description="Add a standalone task or generate from a predefined template"
+        description="Add a standalone task or link to an engagement deliverable"
         maxWidth="2xl"
       >
         <form onSubmit={handleCreateTask} className="space-y-4">
-          {/* Template Picker */}
-          {templates.length > 0 && (
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 block">
-                Load from Template
-              </label>
-              <select
-                value={selectedTemplateId}
-                onChange={(e) => handleTemplateSelect(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
-              >
-                <option value="">-- Blank Task (Custom) --</option>
-                {templates.map((tpl) => (
-                  <option key={tpl.id} value={tpl.id}>
-                    {tpl.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Template Picker */}
+            {templates.length > 0 && (
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 block">
+                  Load from Template
+                </label>
+                <select
+                  value={selectedTemplateId}
+                  onChange={(e) => handleTemplateSelect(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
+                >
+                  <option value="">-- Blank Task (Custom) --</option>
+                  {templates.map((tpl) => (
+                    <option key={tpl.id} value={tpl.id}>
+                      {tpl.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Engagement Picker */}
+            {engagements.length > 0 && (
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 block">
+                  Client Engagement
+                </label>
+                <select
+                  value={selectedEngagementId}
+                  onChange={(e) => setSelectedEngagementId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
+                >
+                  <option value="">-- Standalone Task --</option>
+                  {engagements.map((eng) => (
+                    <option key={eng.id} value={eng.id}>
+                      {eng.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
 
           {/* Template Variables (if template selected) */}
           {selectedTemplateId && Object.keys(templateVariables).length > 0 && (
@@ -497,7 +624,7 @@ export const TasksPage: React.FC = () => {
 
           <Input
             label="Title"
-            placeholder="e.g. Implement OAuth 2.0 PKCE flow"
+            placeholder="e.g. Monthly GST Filing & Reconciliation"
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
             required
@@ -511,7 +638,7 @@ export const TasksPage: React.FC = () => {
               rows={3}
               value={newTaskDescription}
               onChange={(e) => setNewTaskDescription(e.target.value)}
-              placeholder="Provide context, acceptance criteria, or reproduction steps..."
+              placeholder="Provide context, acceptance criteria, or deliverables notes..."
               className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
             />
           </div>
@@ -590,10 +717,17 @@ export const TasksPage: React.FC = () => {
               {/* Drawer Header */}
               <div className="flex items-start justify-between pb-4 border-b border-slate-800">
                 <div>
-                  <span className="text-xs font-mono font-bold text-indigo-400">
-                    TASK-{selectedTask.taskNumber}
-                  </span>
-                  <h2 className="text-lg font-bold text-white mt-1">{selectedTask.title}</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-indigo-400">
+                      TASK-{selectedTask.taskNumber}
+                    </span>
+                    {selectedTask.engagement && (
+                      <span className="text-[11px] font-semibold text-indigo-300 bg-indigo-950/80 border border-indigo-500/30 px-2 py-0.5 rounded">
+                        {selectedTask.engagement.title}
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="text-lg font-bold text-white mt-1.5">{selectedTask.title}</h2>
                 </div>
                 <button
                   onClick={() => setSelectedTask(null)}
@@ -602,6 +736,53 @@ export const TasksPage: React.FC = () => {
                   <X className="w-5 h-5" />
                 </button>
               </div>
+
+              {/* Review Action Banner */}
+              {(selectedTask.status === 'READY_FOR_REVIEW' ||
+                selectedTask.status === 'REVIEW' ||
+                selectedTask.status === 'CHANGES_REQUESTED') && (
+                <div className="p-4 rounded-xl bg-purple-950/30 border border-purple-500/30 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-purple-400" />
+                      <span className="text-xs font-bold text-purple-200">
+                        {selectedTask.status === 'CHANGES_REQUESTED'
+                          ? 'Changes Requested by Reviewer'
+                          : 'Deliverable Awaiting Review'}
+                      </span>
+                    </div>
+                    <Badge variant={selectedTask.status === 'CHANGES_REQUESTED' ? 'danger' : 'primary'} size="sm">
+                      {selectedTask.status}
+                    </Badge>
+                  </div>
+
+                  <p className="text-[11px] text-slate-300">
+                    {selectedTask.status === 'CHANGES_REQUESTED'
+                      ? 'Revisions have been requested on this task. Review feedback below before resubmitting.'
+                      : 'Managers and reviewers can approve this deliverable or request changes with feedback.'}
+                  </p>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      className="bg-emerald-600 hover:bg-emerald-500 text-xs flex items-center gap-1.5"
+                      isLoading={reviewSubmitting}
+                      onClick={handleApproveTask}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Approve & Complete
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-amber-300 border-amber-500/30 hover:bg-amber-950/40 text-xs flex items-center gap-1.5"
+                      onClick={() => setIsChangesModalOpen(true)}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" /> Request Changes
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Status & Priority Control */}
               <div className="grid grid-cols-2 gap-3">
@@ -614,10 +795,12 @@ export const TasksPage: React.FC = () => {
                     onChange={(e) => handleStatusChange(selectedTask.id, e.target.value as TaskStatus)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-white"
                   >
+                    <option value="NOT_STARTED">Not Started</option>
                     <option value="TODO">To Do</option>
                     <option value="IN_PROGRESS">In Progress</option>
-                    <option value="REVIEW">In Review</option>
-                    <option value="DONE">Done</option>
+                    <option value="READY_FOR_REVIEW">Ready for Review</option>
+                    <option value="CHANGES_REQUESTED">Changes Requested</option>
+                    <option value="COMPLETED">Completed</option>
                   </select>
                 </div>
 
@@ -668,13 +851,15 @@ export const TasksPage: React.FC = () => {
                     >
                       <input
                         type="checkbox"
-                        checked={sub.status === 'DONE'}
+                        checked={sub.status === 'COMPLETED' || sub.status === 'DONE'}
                         readOnly
                         className="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-900"
                       />
                       <span
                         className={`text-xs ${
-                          sub.status === 'DONE' ? 'line-through text-slate-500' : 'text-slate-200'
+                          sub.status === 'COMPLETED' || sub.status === 'DONE'
+                            ? 'line-through text-slate-500'
+                            : 'text-slate-200'
                         }`}
                       >
                         {sub.title}
@@ -740,6 +925,50 @@ export const TasksPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Request Changes Modal */}
+      <Modal
+        isOpen={isChangesModalOpen}
+        onClose={() => {
+          setIsChangesModalOpen(false);
+          setChangeReason('');
+        }}
+        title="Request Changes on Deliverable"
+        description="Provide actionable feedback explaining what needs revision before approval"
+        maxWidth="md"
+      >
+        <form onSubmit={handleRequestChanges} className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 block">
+              Feedback & Revisions Required *
+            </label>
+            <textarea
+              rows={4}
+              value={changeReason}
+              onChange={(e) => setChangeReason(e.target.value)}
+              placeholder="e.g. Please verify the bank reconciliation statement for the period before submitting."
+              className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsChangesModalOpen(false);
+                setChangeReason('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" className="bg-amber-600 hover:bg-amber-500" isLoading={reviewSubmitting}>
+              Submit Changes Request
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

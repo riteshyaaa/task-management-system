@@ -32,6 +32,8 @@ export async function clearDatabase(): Promise<void> {
     await prisma.taskLabelMap.deleteMany();
     await prisma.label.deleteMany();
     await prisma.task.deleteMany();
+    await prisma.engagement.deleteMany();
+    await prisma.serviceType.deleteMany();
     await prisma.clientMember.deleteMany();
     await prisma.client.deleteMany();
     await prisma.passwordReset.deleteMany();
@@ -60,6 +62,12 @@ export async function seedTestRoles(): Promise<void> {
       where: { name: RoleName.MEMBER },
       update: {},
       create: { name: RoleName.MEMBER, description: 'Standard client contributor access' }
+    });
+
+    const teamMemberRole = await prisma.role.upsert({
+      where: { name: RoleName.TEAM_MEMBER },
+      update: {},
+      create: { name: RoleName.TEAM_MEMBER, description: 'Standard team contributor access' }
     });
 
     const managerRole = await prisma.role.upsert({
@@ -94,34 +102,22 @@ export async function seedTestRoles(): Promise<void> {
         }
       });
 
-      // Link permission to member and admin roles
-      await prisma.rolePermission.upsert({
-        where: {
-          roleId_permissionId: {
-            roleId: memberRole.id,
+      // Link permission to member, team_member, manager, and admin roles
+      for (const role of [memberRole, teamMemberRole, managerRole, adminRole]) {
+        await prisma.rolePermission.upsert({
+          where: {
+            roleId_permissionId: {
+              roleId: role.id,
+              permissionId: p.id
+            }
+          },
+          update: {},
+          create: {
+            roleId: role.id,
             permissionId: p.id
           }
-        },
-        update: {},
-        create: {
-          roleId: memberRole.id,
-          permissionId: p.id
-        }
-      });
-
-      await prisma.rolePermission.upsert({
-        where: {
-          roleId_permissionId: {
-            roleId: adminRole.id,
-            permissionId: p.id
-          }
-        },
-        update: {},
-        create: {
-          roleId: adminRole.id,
-          permissionId: p.id
-        }
-      });
+        });
+      }
     }
   } catch (error) {
     console.warn('seedTestRoles warning:', error);

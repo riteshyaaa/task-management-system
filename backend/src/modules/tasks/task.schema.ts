@@ -5,6 +5,7 @@ export const createTaskSchema = z.object({
   title: z.string().min(1, 'Task title is required').max(255).trim(),
   description: z.string().optional(),
   clientId: z.string().uuid('Invalid client ID'),
+  engagementId: z.string().uuid('Invalid engagement ID').optional().nullable(),
   status: z.nativeEnum(TaskStatus).default(TaskStatus.TODO),
   priority: z.nativeEnum(TaskPriority).default(TaskPriority.MEDIUM),
   dueDate: z.string().datetime().optional().nullable(),
@@ -28,6 +29,7 @@ export const updateTaskSchema = z.object({
   estimatedHours: z.number().min(0).max(9999).optional().nullable(),
   actualHours: z.number().min(0).max(9999).optional().nullable(),
   assigneeId: z.string().uuid('Invalid assignee ID').optional().nullable(),
+  engagementId: z.string().uuid('Invalid engagement ID').optional().nullable(),
   parentTaskId: z.string().uuid('Invalid parent task ID').optional().nullable(),
   position: z.number().int().optional(),
   labelIds: z.array(z.string().uuid()).optional(),
@@ -37,6 +39,7 @@ export const updateTaskSchema = z.object({
 
 export const filterTasksQuerySchema = z.object({
   clientId: z.string().uuid('Invalid client ID').optional(),
+  engagementId: z.string().uuid('Invalid engagement ID').optional(),
   status: z.union([z.nativeEnum(TaskStatus), z.array(z.nativeEnum(TaskStatus))]).optional(),
   priority: z.union([z.nativeEnum(TaskPriority), z.array(z.nativeEnum(TaskPriority))]).optional(),
   assigneeId: z.string().uuid().optional().nullable(),
@@ -51,6 +54,10 @@ export const filterTasksQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
   sortBy: z.enum(['createdAt', 'dueDate', 'priority', 'position', 'taskNumber']).default('position'),
   sortOrder: z.enum(['asc', 'desc']).default('asc')
+});
+
+export const requestChangesSchema = z.object({
+  reason: z.string().min(1, 'Reason for requesting changes is required')
 });
 
 export const reorderTaskSchema = z.object({
