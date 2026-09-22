@@ -36,7 +36,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     role: 'Manager',
-    name: 'Alice Johnson',
+    name: 'Sarah Manager',
     email: 'manager@example.com',
     password: 'Password123!',
     icon: Briefcase,
@@ -44,7 +44,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     role: 'Member (Dev)',
-    name: 'David Developer',
+    name: 'Alice Dev',
     email: 'dev@example.com',
     password: 'Password123!',
     icon: Code,
@@ -52,7 +52,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     role: 'Member (QA)',
-    name: 'Eva Tester',
+    name: 'Bob QA',
     email: 'qa@example.com',
     password: 'Password123!',
     icon: CheckCircle2,

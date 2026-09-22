@@ -69,12 +69,14 @@ export class AuthService {
       throw new ConflictError('An account with this email address already exists.', undefined, 'EMAIL_EXISTS');
     }
 
-    const memberRole = await prisma.role.findUnique({
-      where: { name: RoleName.MEMBER }
+    const memberRole = await prisma.role.findFirst({
+      where: {
+        name: { in: [RoleName.MEMBER, RoleName.TEAM_MEMBER] }
+      }
     });
 
     if (!memberRole) {
-      throw new Error('Default MEMBER role is missing in database. Please run seed script.');
+      throw new Error('Default MEMBER / TEAM_MEMBER role is missing in database. Please run seed script.');
     }
 
     const passwordHash = await hashPassword(input.password);
