@@ -41,9 +41,12 @@ export function createApp(): Express {
   // 3. Global Rate Limiter
   const limiter = rateLimit({
     windowMs: ENV.RATE_LIMIT_WINDOW_MS,
-    max: ENV.RATE_LIMIT_MAX,
+    max: ENV.NODE_ENV === 'development' || ENV.NODE_ENV === 'test' ? 10000 : ENV.RATE_LIMIT_MAX,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req: Request) => {
+      return req.method === 'OPTIONS' || req.path === '/health' || req.path.includes('/health');
+    },
     message: {
       success: false,
       error: {

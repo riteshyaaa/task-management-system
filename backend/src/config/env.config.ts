@@ -21,7 +21,7 @@ export const ENV = {
   // Security & Rate Limiting
   BCRYPT_SALT_ROUNDS: parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10),
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 mins
-  RATE_LIMIT_MAX: parseInt(process.env.RATE_LIMIT_MAX || '200', 10),
+  RATE_LIMIT_MAX: parseInt(process.env.RATE_LIMIT_MAX || process.env.RATE_LIMIT_MAX_REQUESTS || (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' ? '10000' : '2000'), 10),
 
   // Background Jobs
   RECURRING_TASK_CRON: process.env.RECURRING_TASK_CRON || '*/5 * * * *', // every 5 mins
