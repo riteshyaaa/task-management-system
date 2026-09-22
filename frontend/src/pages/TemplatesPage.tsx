@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { FileCode2, Plus, Zap, CheckSquare, Sparkles, ToggleLeft, ToggleRight, ArrowRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { useClient } from '../context/ClientContext';
 import { useToast } from '../context/ToastContext';
 import { templateService } from '../services/template.service';
@@ -11,8 +12,15 @@ import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 
 export const TemplatesPage: React.FC = () => {
+  const { user } = useAuth();
   const { currentClient } = useClient();
   const { showToast } = useToast();
+
+  const isPrivileged =
+    user?.role?.name === 'ADMIN' ||
+    user?.role?.name === 'MANAGER' ||
+    (user as any)?.roles?.includes('ADMIN') ||
+    (user as any)?.roles?.includes('MANAGER');
 
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [rules, setRules] = useState<AutomationRule[]>([]);
@@ -161,22 +169,24 @@ export const TemplatesPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            leftIcon={<Plus className="w-4 h-4" />}
-            onClick={() => setIsTemplateModalOpen(true)}
-          >
-            New Template
-          </Button>
-          <Button
-            variant="primary"
-            leftIcon={<Plus className="w-4 h-4" />}
-            onClick={() => setIsRuleModalOpen(true)}
-          >
-            New Rule
-          </Button>
-        </div>
+        {isPrivileged && (
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              leftIcon={<Plus className="w-4 h-4" />}
+              onClick={() => setIsTemplateModalOpen(true)}
+            >
+              New Template
+            </Button>
+            <Button
+              variant="primary"
+              leftIcon={<Plus className="w-4 h-4" />}
+              onClick={() => setIsRuleModalOpen(true)}
+            >
+              New Rule
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Section 1: Task Templates */}
@@ -297,16 +307,27 @@ export const TemplatesPage: React.FC = () => {
                     <p className="text-sm font-bold text-white">{rule.executionCount} times</p>
                   </div>
 
-                  <button
-                    onClick={() => handleToggleRule(rule.id, rule.isActive)}
-                    className="p-2 text-slate-400 hover:text-white transition-colors"
-                  >
-                    {rule.isActive ? (
-                      <ToggleRight className="w-8 h-8 text-indigo-400" />
-                    ) : (
-                      <ToggleLeft className="w-8 h-8 text-slate-600" />
-                    )}
-                  </button>
+                  {isPrivileged ? (
+                    <button
+                      onClick={() => handleToggleRule(rule.id, rule.isActive)}
+                      className="p-2 text-slate-400 hover:text-white transition-colors"
+                      title="Toggle Automation Rule"
+                    >
+                      {rule.isActive ? (
+                        <ToggleRight className="w-8 h-8 text-indigo-400" />
+                      ) : (
+                        <ToggleLeft className="w-8 h-8 text-slate-600" />
+                      )}
+                    </button>
+                  ) : (
+                    <div className="p-2 text-slate-500 opacity-60">
+                      {rule.isActive ? (
+                        <ToggleRight className="w-8 h-8 text-indigo-400" />
+                      ) : (
+                        <ToggleLeft className="w-8 h-8 text-slate-600" />
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))

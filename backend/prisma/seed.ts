@@ -167,11 +167,11 @@ async function main() {
     )
   );
 
-  // Member gets standard operational permissions
+  // Member gets standard operational permissions (NO tasks:create, NO tasks:delete, NO templates:instantiate)
   const memberPermSlugs = [
-    'users:read', 'clients:read', 'teams:read', 'tasks:create', 'tasks:read', 'tasks:update',
+    'users:read', 'clients:read', 'teams:read', 'tasks:read', 'tasks:update',
     'comments:read', 'comments:create', 'comments:update',
-    'workflows:read', 'workflows:transition', 'templates:read', 'templates:instantiate',
+    'workflows:read', 'workflows:transition', 'templates:read',
     'recurring:read', 'analytics:read', 'dashboard:customize'
   ];
   await Promise.all(

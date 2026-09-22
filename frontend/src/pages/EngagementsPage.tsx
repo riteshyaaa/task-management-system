@@ -20,6 +20,7 @@ import { templateService } from '../services/template.service';
 import { Engagement, EngagementStatus } from '../types/engagement.types';
 import { ServiceType } from '../types/service-type.types';
 import { TaskTemplate } from '../types/template.types';
+import { useAuth } from '../context/AuthContext';
 import { useClient } from '../context/ClientContext';
 import { useToast } from '../context/ToastContext';
 import { Button } from '../components/ui/Button';
@@ -32,8 +33,15 @@ import { formatDate } from '../utils/formatters';
 export const EngagementsPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { user } = useAuth();
   const { showToast } = useToast();
   const { clients, currentClient, clientMembers } = useClient();
+
+  const isPrivileged =
+    user?.role?.name === 'ADMIN' ||
+    user?.role?.name === 'MANAGER' ||
+    (user as any)?.roles?.includes('ADMIN') ||
+    (user as any)?.roles?.includes('MANAGER');
 
   const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
@@ -301,9 +309,11 @@ export const EngagementsPage: React.FC = () => {
             </select>
           )}
 
-          <Button variant="primary" leftIcon={<Plus className="w-4 h-4" />} onClick={openCreateModal}>
-            New Engagement
-          </Button>
+          {isPrivileged && (
+            <Button variant="primary" leftIcon={<Plus className="w-4 h-4" />} onClick={openCreateModal}>
+              New Engagement
+            </Button>
+          )}
         </div>
       </div>
 
@@ -369,7 +379,7 @@ export const EngagementsPage: React.FC = () => {
               ? 'Try adjusting your search query or filters.'
               : 'Create a new engagement to track client deliverables with automated task templating and SLAs.'}
           </p>
-          {!searchQuery && (
+          {!searchQuery && isPrivileged && (
             <Button variant="primary" size="sm" className="mt-4" onClick={openCreateModal}>
               Create Engagement
             </Button>
@@ -473,7 +483,7 @@ export const EngagementsPage: React.FC = () => {
                 {/* Footer Controls */}
                 <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-slate-800/80">
                   <div className="flex items-center gap-1">
-                    {eng.status === 'ACTIVE' && (
+                    {isPrivileged && eng.status === 'ACTIVE' && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -483,7 +493,7 @@ export const EngagementsPage: React.FC = () => {
                         <CheckCircle className="w-3.5 h-3.5 mr-1" /> Complete
                       </Button>
                     )}
-                    {eng.status === 'COMPLETED' && (
+                    {isPrivileged && eng.status === 'COMPLETED' && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -504,22 +514,26 @@ export const EngagementsPage: React.FC = () => {
                     >
                       Tasks <ArrowUpRight className="w-3 h-3 ml-1" />
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="px-2"
-                      onClick={() => openEditModal(eng)}
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 px-2"
-                      onClick={() => handleDelete(eng.id, eng.title)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    {isPrivileged && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="px-2"
+                          onClick={() => openEditModal(eng)}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 px-2"
+                          onClick={() => handleDelete(eng.id, eng.title)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </Card>
