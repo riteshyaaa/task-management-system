@@ -589,11 +589,11 @@ async function main() {
   // 10. Create Workflow Definitions, States, and Transitions for both Workspaces
   console.log('[SEED] Creating Workflow State Machines for both Workspaces...');
 
-  // Workspace 1 Workflow: "Client Engagement Review Pipeline"
+  // Workspace 1 Workflow: "Client Deliverable Workflow"
   const wfAcme = await prisma.workflowDefinition.create({
     data: {
-      name: 'Client Engagement Review Pipeline',
-      description: 'Standard 4-eyes review workflow for professional client deliverables',
+      name: 'Client Deliverable Workflow',
+      description: 'Standard 4-state review workflow: NOT_STARTED -> IN_PROGRESS -> READY_FOR_REVIEW -> COMPLETED',
       status: WorkflowStatus.ACTIVE,
       version: 1,
       clientId: client1.id,
@@ -601,32 +601,29 @@ async function main() {
     }
   });
 
-  const stateAcmeDraft = await prisma.workflowState.create({
-    data: { workflowId: wfAcme.id, name: 'Draft / Preparation', slug: 'draft', color: '#64748B', isInitial: true, position: 0 }
+  const stateAcmeNotStarted = await prisma.workflowState.create({
+    data: { workflowId: wfAcme.id, name: 'NOT_STARTED', slug: 'not_started', color: '#64748B', isInitial: true, position: 0 }
   });
   const stateAcmeInProgress = await prisma.workflowState.create({
-    data: { workflowId: wfAcme.id, name: 'In Progress', slug: 'in_progress', color: '#3B82F6', position: 1 }
+    data: { workflowId: wfAcme.id, name: 'IN_PROGRESS', slug: 'in_progress', color: '#3B82F6', position: 1 }
   });
   const stateAcmeReview = await prisma.workflowState.create({
-    data: { workflowId: wfAcme.id, name: 'Manager Review', slug: 'manager_review', color: '#F59E0B', position: 2 }
+    data: { workflowId: wfAcme.id, name: 'READY_FOR_REVIEW', slug: 'ready_for_review', color: '#F59E0B', position: 2 }
   });
-  const stateAcmeChanges = await prisma.workflowState.create({
-    data: { workflowId: wfAcme.id, name: 'Changes Requested', slug: 'changes_requested', color: '#EF4444', position: 3 }
-  });
-  const stateAcmeDone = await prisma.workflowState.create({
-    data: { workflowId: wfAcme.id, name: 'Delivered & Approved', slug: 'approved', color: '#10B981', isTerminal: true, position: 4 }
+  const stateAcmeCompleted = await prisma.workflowState.create({
+    data: { workflowId: wfAcme.id, name: 'COMPLETED', slug: 'completed', color: '#10B981', isTerminal: true, position: 3 }
   });
 
   await prisma.workflowDefinition.update({
     where: { id: wfAcme.id },
-    data: { initialStateId: stateAcmeDraft.id }
+    data: { initialStateId: stateAcmeNotStarted.id }
   });
 
   // Transitions for Acme
   const trans1 = await prisma.workflowTransition.create({
     data: {
       workflowId: wfAcme.id,
-      fromStateId: stateAcmeDraft.id,
+      fromStateId: stateAcmeNotStarted.id,
       toStateId: stateAcmeInProgress.id,
       name: 'Start Work'
     }
@@ -636,14 +633,14 @@ async function main() {
       workflowId: wfAcme.id,
       fromStateId: stateAcmeInProgress.id,
       toStateId: stateAcmeReview.id,
-      name: 'Submit for Manager Review'
+      name: 'Submit for Review'
     }
   });
   const trans3 = await prisma.workflowTransition.create({
     data: {
       workflowId: wfAcme.id,
       fromStateId: stateAcmeReview.id,
-      toStateId: stateAcmeDone.id,
+      toStateId: stateAcmeCompleted.id,
       name: 'Approve Deliverable',
       conditions: {
         create: {
@@ -665,24 +662,16 @@ async function main() {
     data: {
       workflowId: wfAcme.id,
       fromStateId: stateAcmeReview.id,
-      toStateId: stateAcmeChanges.id,
+      toStateId: stateAcmeInProgress.id,
       name: 'Request Changes'
     }
   });
-  const trans5 = await prisma.workflowTransition.create({
-    data: {
-      workflowId: wfAcme.id,
-      fromStateId: stateAcmeChanges.id,
-      toStateId: stateAcmeInProgress.id,
-      name: 'Revise Deliverable'
-    }
-  });
 
-  // Workspace 2 Workflow: "TechStart SaaS Quality & Audit Workflow"
+  // Workspace 2 Workflow: "SaaS Deliverable Workflow"
   const wfTechStart = await prisma.workflowDefinition.create({
     data: {
-      name: 'SaaS Compliance & Audit Workflow',
-      description: 'Audit readiness and tax filing validation lifecycle',
+      name: 'SaaS Deliverable Workflow',
+      description: 'Standard 4-state review workflow: NOT_STARTED -> IN_PROGRESS -> READY_FOR_REVIEW -> COMPLETED',
       status: WorkflowStatus.ACTIVE,
       version: 1,
       clientId: client2.id,
@@ -690,36 +679,36 @@ async function main() {
     }
   });
 
-  const stateTechStartSpec = await prisma.workflowState.create({
-    data: { workflowId: wfTechStart.id, name: 'Requirements Scope', slug: 'scope', color: '#64748B', isInitial: true, position: 0 }
+  const stateTechStartNotStarted = await prisma.workflowState.create({
+    data: { workflowId: wfTechStart.id, name: 'NOT_STARTED', slug: 'not_started', color: '#64748B', isInitial: true, position: 0 }
   });
-  const stateTechStartWork = await prisma.workflowState.create({
-    data: { workflowId: wfTechStart.id, name: 'Evidence Compilation', slug: 'compilation', color: '#3B82F6', position: 1 }
+  const stateTechStartInProgress = await prisma.workflowState.create({
+    data: { workflowId: wfTechStart.id, name: 'IN_PROGRESS', slug: 'in_progress', color: '#3B82F6', position: 1 }
   });
-  const stateTechStartAudit = await prisma.workflowState.create({
-    data: { workflowId: wfTechStart.id, name: 'Internal Audit Review', slug: 'internal_audit', color: '#F59E0B', position: 2 }
+  const stateTechStartReview = await prisma.workflowState.create({
+    data: { workflowId: wfTechStart.id, name: 'READY_FOR_REVIEW', slug: 'ready_for_review', color: '#F59E0B', position: 2 }
   });
-  const stateTechStartFinal = await prisma.workflowState.create({
-    data: { workflowId: wfTechStart.id, name: 'Signed Off & Filed', slug: 'filed', color: '#10B981', isTerminal: true, position: 3 }
+  const stateTechStartCompleted = await prisma.workflowState.create({
+    data: { workflowId: wfTechStart.id, name: 'COMPLETED', slug: 'completed', color: '#10B981', isTerminal: true, position: 3 }
   });
 
   await prisma.workflowDefinition.update({
     where: { id: wfTechStart.id },
-    data: { initialStateId: stateTechStartSpec.id }
+    data: { initialStateId: stateTechStartNotStarted.id }
   });
 
   await prisma.workflowTransition.create({
-    data: { workflowId: wfTechStart.id, fromStateId: stateTechStartSpec.id, toStateId: stateTechStartWork.id, name: 'Begin Evidence Gathering' }
+    data: { workflowId: wfTechStart.id, fromStateId: stateTechStartNotStarted.id, toStateId: stateTechStartInProgress.id, name: 'Start Work' }
   });
-  await prisma.workflowTransition.create({
-    data: { workflowId: wfTechStart.id, fromStateId: stateTechStartWork.id, toStateId: stateTechStartAudit.id, name: 'Submit for Audit' }
+  const transTech2 = await prisma.workflowTransition.create({
+    data: { workflowId: wfTechStart.id, fromStateId: stateTechStartInProgress.id, toStateId: stateTechStartReview.id, name: 'Submit for Review' }
   });
-  await prisma.workflowTransition.create({
+  const transTech3 = await prisma.workflowTransition.create({
     data: {
       workflowId: wfTechStart.id,
-      fromStateId: stateTechStartAudit.id,
-      toStateId: stateTechStartFinal.id,
-      name: 'Approve & File',
+      fromStateId: stateTechStartReview.id,
+      toStateId: stateTechStartCompleted.id,
+      name: 'Approve & Complete',
       conditions: {
         create: {
           conditionType: TransitionConditionType.ROLE_CHECK,
@@ -728,6 +717,9 @@ async function main() {
         }
       }
     }
+  });
+  await prisma.workflowTransition.create({
+    data: { workflowId: wfTechStart.id, fromStateId: stateTechStartReview.id, toStateId: stateTechStartInProgress.id, name: 'Request Changes' }
   });
 
   // 11. Create Rich Set of Tasks for Both Workspaces (covering all review statuses & edge cases)
@@ -795,7 +787,7 @@ async function main() {
       position: 2,
       taskLabels: { create: [{ labelId: labelAccounting1.id }] },
       workflowAssignment: {
-        create: { workflowId: wfAcme.id, currentStateId: stateAcmeDraft.id }
+        create: { workflowId: wfAcme.id, currentStateId: stateAcmeNotStarted.id }
       }
     }
   });
@@ -816,7 +808,7 @@ async function main() {
       position: 3,
       taskLabels: { create: [{ labelId: labelAccounting1.id }] },
       workflowAssignment: {
-        create: { workflowId: wfAcme.id, currentStateId: stateAcmeDone.id }
+        create: { workflowId: wfAcme.id, currentStateId: stateAcmeCompleted.id }
       }
     }
   });
@@ -842,7 +834,7 @@ async function main() {
     data: {
       title: 'Acme Corporation - Journal Entry Adjustments for Inventory Shrinkage',
       description: 'Review physical inventory count variance and prepare adjusting journal entries.',
-      status: TaskStatus.CHANGES_REQUESTED,
+      status: TaskStatus.IN_PROGRESS,
       priority: TaskPriority.HIGH,
       clientId: client1.id,
       engagementId: engagementAcme1.id,
@@ -854,7 +846,7 @@ async function main() {
       position: 5,
       taskLabels: { create: [{ labelId: labelAccounting1.id }, { labelId: labelReview1.id }] },
       workflowAssignment: {
-        create: { workflowId: wfAcme.id, currentStateId: stateAcmeChanges.id }
+        create: { workflowId: wfAcme.id, currentStateId: stateAcmeInProgress.id }
       }
     }
   });
@@ -873,7 +865,10 @@ async function main() {
       actualHours: 1.9,
       dueDate: futureDate,
       position: 6,
-      taskLabels: { create: [{ labelId: labelPayroll1.id }, { labelId: labelUrgent1.id }] }
+      taskLabels: { create: [{ labelId: labelPayroll1.id }, { labelId: labelUrgent1.id }] },
+      workflowAssignment: {
+        create: { workflowId: wfAcme.id, currentStateId: stateAcmeReview.id }
+      }
     }
   });
 
@@ -891,7 +886,10 @@ async function main() {
       actualHours: 1.0,
       dueDate: overdueDate,
       position: 7,
-      taskLabels: { create: [{ labelId: labelAccounting1.id }, { labelId: labelUrgent1.id }] }
+      taskLabels: { create: [{ labelId: labelAccounting1.id }, { labelId: labelUrgent1.id }] },
+      workflowAssignment: {
+        create: { workflowId: wfAcme.id, currentStateId: stateAcmeInProgress.id }
+      }
     }
   });
 
@@ -931,7 +929,7 @@ async function main() {
       position: 0,
       taskLabels: { create: [{ labelId: labelTax2.id }] },
       workflowAssignment: {
-        create: { workflowId: wfTechStart.id, currentStateId: stateTechStartWork.id }
+        create: { workflowId: wfTechStart.id, currentStateId: stateTechStartInProgress.id }
       }
     }
   });
@@ -952,7 +950,7 @@ async function main() {
       position: 1,
       taskLabels: { create: [{ labelId: labelTax2.id }, { labelId: labelReview2.id }] },
       workflowAssignment: {
-        create: { workflowId: wfTechStart.id, currentStateId: stateTechStartAudit.id }
+        create: { workflowId: wfTechStart.id, currentStateId: stateTechStartReview.id }
       }
     }
   });
@@ -972,7 +970,7 @@ async function main() {
       position: 2,
       taskLabels: { create: [{ labelId: labelTax2.id }] },
       workflowAssignment: {
-        create: { workflowId: wfTechStart.id, currentStateId: stateTechStartSpec.id }
+        create: { workflowId: wfTechStart.id, currentStateId: stateTechStartNotStarted.id }
       }
     }
   });
@@ -991,7 +989,10 @@ async function main() {
       actualHours: 9.5,
       dueDate: futureDate,
       position: 3,
-      taskLabels: { create: [{ labelId: labelSecurity2.id }, { labelId: labelUrgent2.id }] }
+      taskLabels: { create: [{ labelId: labelSecurity2.id }, { labelId: labelUrgent2.id }] },
+      workflowAssignment: {
+        create: { workflowId: wfTechStart.id, currentStateId: stateTechStartReview.id }
+      }
     }
   });
 
@@ -1009,7 +1010,10 @@ async function main() {
       actualHours: 5.5,
       completedAt: new Date(),
       position: 4,
-      taskLabels: { create: [{ labelId: labelSecurity2.id }] }
+      taskLabels: { create: [{ labelId: labelSecurity2.id }] },
+      workflowAssignment: {
+        create: { workflowId: wfTechStart.id, currentStateId: stateTechStartCompleted.id }
+      }
     }
   });
 
@@ -1044,7 +1048,10 @@ async function main() {
       actualHours: 2.0,
       dueDate: overdueDate,
       position: 6,
-      taskLabels: { create: [{ labelId: labelTax2.id }, { labelId: labelUrgent2.id }] }
+      taskLabels: { create: [{ labelId: labelTax2.id }, { labelId: labelUrgent2.id }] },
+      workflowAssignment: {
+        create: { workflowId: wfTechStart.id, currentStateId: stateTechStartInProgress.id }
+      }
     }
   });
 
@@ -1082,8 +1089,9 @@ async function main() {
     }
   });
 
-  // 12. Create Recurring Task Rules
-  console.log('[SEED] Creating Recurring Task Rules...');
+  // 12. Create Recurring Task Rules for Both Workspaces
+  console.log('[SEED] Creating Recurring Task Rules for both Workspaces...');
+  // Workspace 1 (Acme Corporation) Recurring Schedules
   const recurrenceRule1 = await prisma.recurrenceRule.create({
     data: {
       taskTemplateId: taskAcme1.id,
@@ -1132,13 +1140,76 @@ async function main() {
             status: InstanceStatus.GENERATED,
             generatedTaskId: taskAcme7.id,
             generatedAt: new Date('2026-09-01T00:00:05Z')
+          },
+          {
+            scheduledFor: new Date('2026-09-15T00:00:00Z'),
+            status: InstanceStatus.PENDING
           }
         ]
       }
     }
   });
 
-  // 13. Create Workflow Transition Histories
+  // Workspace 2 (TechStart Inc) Recurring Schedules
+  const recurrenceRule3 = await prisma.recurrenceRule.create({
+    data: {
+      taskTemplateId: taskTech1.id,
+      frequency: RecurrenceFrequency.MONTHLY,
+      interval: 1,
+      startDate: new Date('2026-09-01T00:00:00Z'),
+      nextOccurrence: new Date('2026-10-01T00:00:00Z'),
+      status: RecurrenceStatus.ACTIVE,
+      createdById: manager2.id,
+      monthlyConfig: {
+        create: { dayOfMonth: 15 }
+      },
+      instances: {
+        create: [
+          {
+            scheduledFor: new Date('2026-09-01T00:00:00Z'),
+            status: InstanceStatus.GENERATED,
+            generatedTaskId: taskTech1.id,
+            generatedAt: new Date('2026-09-01T00:00:05Z')
+          },
+          {
+            scheduledFor: new Date('2026-10-01T00:00:00Z'),
+            status: InstanceStatus.PENDING
+          }
+        ]
+      }
+    }
+  });
+
+  const recurrenceRule4 = await prisma.recurrenceRule.create({
+    data: {
+      taskTemplateId: taskTech4.id,
+      frequency: RecurrenceFrequency.WEEKLY,
+      interval: 1,
+      startDate: new Date('2026-09-01T00:00:00Z'),
+      nextOccurrence: new Date('2026-09-08T00:00:00Z'),
+      status: RecurrenceStatus.ACTIVE,
+      createdById: manager2.id,
+      weeklyDays: {
+        create: [{ dayOfWeek: DayOfWeek.FRI }]
+      },
+      instances: {
+        create: [
+          {
+            scheduledFor: new Date('2026-09-01T00:00:00Z'),
+            status: InstanceStatus.GENERATED,
+            generatedTaskId: taskTech4.id,
+            generatedAt: new Date('2026-09-01T00:00:05Z')
+          },
+          {
+            scheduledFor: new Date('2026-09-08T00:00:00Z'),
+            status: InstanceStatus.PENDING
+          }
+        ]
+      }
+    }
+  });
+
+  // 13. Create Workflow Transition Histories for Both Workspaces
   console.log('[SEED] Creating Workflow Transition Histories...');
   await prisma.workflowTransitionHistory.create({
     data: {
@@ -1146,8 +1217,8 @@ async function main() {
       transitionId: trans2.id,
       fromStateId: stateAcmeInProgress.id,
       toStateId: stateAcmeReview.id,
-      fromStateName: 'In Progress',
-      toStateName: 'Manager Review',
+      fromStateName: 'IN_PROGRESS',
+      toStateName: 'READY_FOR_REVIEW',
       triggeredById: member1.id,
       comment: 'Completed bank reconciliations for all 4 operating accounts.'
     }
@@ -1158,11 +1229,37 @@ async function main() {
       taskId: taskAcme4.id,
       transitionId: trans3.id,
       fromStateId: stateAcmeReview.id,
-      toStateId: stateAcmeDone.id,
-      fromStateName: 'Manager Review',
-      toStateName: 'Delivered & Approved',
+      toStateId: stateAcmeCompleted.id,
+      fromStateName: 'READY_FOR_REVIEW',
+      toStateName: 'COMPLETED',
       triggeredById: manager1.id,
       comment: 'Depreciation calculations verified and signed off.'
+    }
+  });
+
+  await prisma.workflowTransitionHistory.create({
+    data: {
+      taskId: taskTech2.id,
+      transitionId: transTech2.id,
+      fromStateId: stateTechStartInProgress.id,
+      toStateId: stateTechStartReview.id,
+      fromStateName: 'IN_PROGRESS',
+      toStateName: 'READY_FOR_REVIEW',
+      triggeredById: member4.id,
+      comment: 'Completed R&D tax study documentation for engineering expenses.'
+    }
+  });
+
+  await prisma.workflowTransitionHistory.create({
+    data: {
+      taskId: taskTech5.id,
+      transitionId: transTech3.id,
+      fromStateId: stateTechStartReview.id,
+      toStateId: stateTechStartCompleted.id,
+      fromStateName: 'READY_FOR_REVIEW',
+      toStateName: 'COMPLETED',
+      triggeredById: manager2.id,
+      comment: 'All KMS key rotation policies verified and approved.'
     }
   });
 

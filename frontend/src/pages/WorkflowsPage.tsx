@@ -21,7 +21,7 @@ export const WorkflowsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [statesInput, setStatesInput] = useState('Backlog, Development, Code Review, QA Testing, Deployed');
+  const [statesInput, setStatesInput] = useState('NOT_STARTED, IN_PROGRESS, READY_FOR_REVIEW, COMPLETED');
   const [submitting, setSubmitting] = useState(false);
 
   const loadWorkflows = async () => {
