@@ -9,7 +9,6 @@ import {
   Briefcase,
   Code,
   CheckCircle2,
-  BarChart3,
   Zap
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -36,7 +35,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     badgeClass: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
   },
   {
-    role: 'Manager 1',
+    role: 'Manager',
     name: 'Alice Johnson',
     email: 'manager@example.com',
     password: 'Password123!',
@@ -44,15 +43,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     badgeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30'
   },
   {
-    role: 'Manager 2',
-    name: 'Bob Smith',
-    email: 'manager2@example.com',
-    password: 'Password123!',
-    icon: Briefcase,
-    badgeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-  },
-  {
-    role: 'Member 1 (Dev)',
+    role: 'Member (Dev)',
     name: 'David Developer',
     email: 'dev@example.com',
     password: 'Password123!',
@@ -60,28 +51,12 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     badgeClass: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30'
   },
   {
-    role: 'Member 2 (QA)',
+    role: 'Member (QA)',
     name: 'Eva Tester',
     email: 'qa@example.com',
     password: 'Password123!',
     icon: CheckCircle2,
     badgeClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-  },
-  {
-    role: 'Member 3 (Analyst)',
-    name: 'Charlie Analyst',
-    email: 'charlie@example.com',
-    password: 'Password123!',
-    icon: BarChart3,
-    badgeClass: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30'
-  },
-  {
-    role: 'Member 4 (Specialist)',
-    name: 'Diana Prince',
-    email: 'diana@example.com',
-    password: 'Password123!',
-    icon: Sparkles,
-    badgeClass: 'bg-purple-500/15 text-purple-400 border-purple-500/30'
   }
 ];
 
@@ -171,7 +146,7 @@ export const LoginPage: React.FC = () => {
             <span className="text-[10px] text-slate-500 font-mono">Password: Password123!</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {DEMO_ACCOUNTS.map((acc) => {
               const Icon = acc.icon;
               const isSelected = email === acc.email;
