@@ -333,7 +333,7 @@ export const EngagementsPage: React.FC = () => {
                       </span>
                       {eng.client && (
                         <span className="text-[11px] font-medium text-slate-400">
-                          • {eng.client.name}
+                          &bull; {eng.client.name}
                         </span>
                       )}
                     </div>

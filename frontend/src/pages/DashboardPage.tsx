@@ -11,6 +11,7 @@ import {
   GitBranch,
   Calendar,
   Activity,
+  Sparkles,
 } from 'lucide-react';
 import { useClient } from '../context/ClientContext';
 import { useAuth } from '../context/AuthContext';
@@ -66,8 +67,8 @@ export const DashboardPage: React.FC = () => {
       {/* Top Banner / Welcome */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-indigo-950/60 via-slate-900/60 to-purple-950/40 border border-indigo-500/20 rounded-3xl p-6 sm:p-8 backdrop-blur-md">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-            Welcome back, {user?.firstName}! ðŸ‘‹
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2">
+            Welcome back, {user?.firstName}! <Sparkles className="w-5 h-5 text-indigo-400 inline" />
           </h1>
           <p className="text-sm text-slate-300 mt-1">
             Here's what's happening across <span className="font-semibold text-indigo-300">{currentClient?.name || 'your workspace'}</span> today.
@@ -280,9 +281,17 @@ export const DashboardPage: React.FC = () => {
                       className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/40 border border-slate-800/80 hover:border-slate-700 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-5 text-center text-xs font-bold text-slate-400">
-                          {idx === 0 ? 'ðŸ¥‡' : idx === 1 ? 'ðŸ¥ˆ' : idx === 2 ? 'ðŸ¥‰' : `${idx + 1}`}
-                        </span>
+                        <div className="w-6 text-center text-xs font-bold shrink-0">
+                          {idx === 0 ? (
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px]">#1</span>
+                          ) : idx === 1 ? (
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-400/20 text-slate-300 border border-slate-400/30 text-[10px]">#2</span>
+                          ) : idx === 2 ? (
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-700/20 text-amber-500 border border-amber-700/30 text-[10px]">#3</span>
+                          ) : (
+                            <span className="text-slate-500 font-mono text-xs">#{idx + 1}</span>
+                          )}
+                        </div>
                         <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-xs text-white">
                           {initial}
                         </div>

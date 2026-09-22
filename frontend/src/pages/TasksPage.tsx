@@ -533,7 +533,7 @@ export const TasksPage: React.FC = () => {
                             }}
                             className="px-2 py-0.5 rounded text-[9px] font-semibold bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white transition-colors"
                           >
-                            → {targetCol.label}
+                            &rarr; {targetCol.label}
                           </button>
                         );
                       })}

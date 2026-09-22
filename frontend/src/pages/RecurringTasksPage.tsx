@@ -154,12 +154,12 @@ export const RecurringTasksPage: React.FC = () => {
 
                   <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-400">
                     <span className="font-semibold text-indigo-300">{rule.frequency}</span>
-                    <span>â€¢</span>
+                    <span>&bull;</span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-slate-500" />
                       Next run: {formatDate(rule.nextOccurrenceDate)}
                     </span>
-                    <span>â€¢</span>
+                    <span>&bull;</span>
                     <span>Timezone: {rule.timezone}</span>
                   </div>
                 </div>

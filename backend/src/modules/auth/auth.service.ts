@@ -273,7 +273,7 @@ export class AuthService {
 
     // REUSE DETECTION: If this token was already revoked, someone may have compromised the family!
     if (tokenRecord.isRevoked) {
-      logger.warn(`ðŸš¨ REUSE DETECTION TRIGGERED: Revoked token reused for user ${payload.userId}, family ${payload.family}. Invalidating family.`);
+      logger.warn(`[SECURITY ALERT] REUSE DETECTION TRIGGERED: Revoked token reused for user ${payload.userId}, family ${payload.family}. Invalidating family.`);
       await prisma.refreshToken.updateMany({
         where: { familyId: payload.family },
         data: { isRevoked: true }

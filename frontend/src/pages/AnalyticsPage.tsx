@@ -162,7 +162,7 @@ export const AnalyticsPage: React.FC = () => {
             <thead>
               <tr className="border-b border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 <th className="py-3 px-4">Rank</th>
-                <th className="py-3 px-4">client Member</th>
+                <th className="py-3 px-4">Client Member</th>
                 <th className="py-3 px-4 text-center">Tasks Completed</th>
                 <th className="py-3 px-4 text-center">Streak</th>
                 <th className="py-3 px-4 text-right">Score</th>
@@ -181,7 +181,15 @@ export const AnalyticsPage: React.FC = () => {
                 return (
                   <tr key={u.id || idx} className="hover:bg-slate-900/40 transition-colors">
                     <td className="py-3.5 px-4 font-bold text-sm">
-                      {idx === 0 ? 'ðŸ¥‡' : idx === 1 ? 'ðŸ¥ˆ' : idx === 2 ? 'ðŸ¥‰' : `#${idx + 1}`}
+                      {idx === 0 ? (
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs">#1</span>
+                      ) : idx === 1 ? (
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-400/20 text-slate-300 border border-slate-400/30 text-xs">#2</span>
+                      ) : idx === 2 ? (
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-700/20 text-amber-500 border border-amber-700/30 text-xs">#3</span>
+                      ) : (
+                        <span className="text-slate-500 font-mono text-xs">#{idx + 1}</span>
+                      )}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">

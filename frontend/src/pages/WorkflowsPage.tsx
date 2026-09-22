@@ -162,9 +162,9 @@ export const WorkflowsPage: React.FC = () => {
                 {wf.description && <p className="text-xs text-slate-400 line-clamp-2">{wf.description}</p>}
                 <div className="flex items-center gap-3 mt-3 text-[11px] text-slate-500">
                   <span>{wf.states?.length || 0} States</span>
-                  <span>â€¢</span>
+                  <span>&bull;</span>
                   <span>{wf.transitions?.length || 0} Transitions</span>
-                  <span>â€¢</span>
+                  <span>&bull;</span>
                   <span>v{wf.version}</span>
                 </div>
               </div>
@@ -237,7 +237,7 @@ export const WorkflowsPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-white">{trans.name}</span>
                           <span className="text-xs text-slate-500">
-                            ({trans.fromState?.name} â†’ {trans.toState?.name})
+                            ({trans.fromState?.name} &rarr; {trans.toState?.name})
                           </span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 mt-1.5">
