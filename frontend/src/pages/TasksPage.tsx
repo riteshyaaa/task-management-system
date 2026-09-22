@@ -4,7 +4,7 @@ import {
   Plus,
   Search,
   Calendar,
-  User as UserIcon,
+  UserCheck,
   MessageSquare,
   Send,
   X,
@@ -60,6 +60,7 @@ export const TasksPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('ALL');
   const [selectedEngagementFilter, setSelectedEngagementFilter] = useState<string>('ALL');
   const [operationalFilter, setOperationalFilter] = useState<string>('ALL');
 
@@ -88,7 +89,7 @@ export const TasksPage: React.FC = () => {
   const [changeReason, setChangeReason] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
-  // Check URL params for create action, engagement filter, or operational queue filter
+  // Check URL params for create action, engagement filter, operational queue filter, or assignee filter
   useEffect(() => {
     const engParam = searchParams.get('engagementId');
     if (engParam) {
@@ -98,6 +99,10 @@ export const TasksPage: React.FC = () => {
     const filterParam = searchParams.get('filter');
     if (filterParam) {
       setOperationalFilter(filterParam);
+    }
+    const assigneeParam = searchParams.get('assignee');
+    if (assigneeParam) {
+      setAssigneeFilter(assigneeParam === 'me' ? 'ME' : assigneeParam);
     }
     if (searchParams.get('create') === 'true') {
       setIsCreateModalOpen(true);
@@ -370,6 +375,12 @@ export const TasksPage: React.FC = () => {
     }
   };
 
+  // Tasks assigned to currently logged-in user
+  const myAssignedTasksCount = useMemo(() => {
+    if (!user?.id) return 0;
+    return tasks.filter((t) => t.assigneeId === user.id || t.assignee?.id === user.id).length;
+  }, [tasks, user?.id]);
+
   // Filter tasks
   const filteredTasks = useMemo(() => {
     const today = new Date();
@@ -385,6 +396,15 @@ export const TasksPage: React.FC = () => {
         (task.engagement?.title && task.engagement.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
       const matchesPriority = priorityFilter === 'ALL' || task.priority === priorityFilter;
+
+      let matchesAssignee = true;
+      if (assigneeFilter === 'ME') {
+        matchesAssignee = Boolean(user?.id && (task.assigneeId === user.id || task.assignee?.id === user.id));
+      } else if (assigneeFilter === 'UNASSIGNED') {
+        matchesAssignee = !task.assigneeId && !task.assignee?.id;
+      } else if (assigneeFilter !== 'ALL') {
+        matchesAssignee = task.assigneeId === assigneeFilter || task.assignee?.id === assigneeFilter;
+      }
 
       let matchesOperational = true;
       if (operationalFilter === 'open') {
@@ -408,9 +428,9 @@ export const TasksPage: React.FC = () => {
         matchesOperational = task.status === 'COMPLETED' || task.status === 'DONE';
       }
 
-      return matchesSearch && matchesPriority && matchesOperational;
+      return matchesSearch && matchesPriority && matchesAssignee && matchesOperational;
     });
-  }, [tasks, searchQuery, priorityFilter, operationalFilter]);
+  }, [tasks, searchQuery, priorityFilter, assigneeFilter, operationalFilter, user?.id]);
 
   if (loading) {
     return (
@@ -465,6 +485,68 @@ export const TasksPage: React.FC = () => {
             <option value="completedThisPeriod">Completed This Period</option>
           </select>
 
+          {/* Quick Filter: Assigned to Me */}
+          <button
+            type="button"
+            onClick={() => {
+              const next = assigneeFilter === 'ME' ? 'ALL' : 'ME';
+              setAssigneeFilter(next);
+              if (next === 'ALL') {
+                searchParams.delete('assignee');
+              } else {
+                searchParams.set('assignee', 'me');
+              }
+              setSearchParams(searchParams);
+            }}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              assigneeFilter === 'ME'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25 ring-2 ring-indigo-400/50'
+                : 'bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700'
+            }`}
+          >
+            <UserCheck className={`w-4 h-4 ${assigneeFilter === 'ME' ? 'text-white' : 'text-indigo-400'}`} />
+            <span>Assigned to Me</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                assigneeFilter === 'ME'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-indigo-950 border border-indigo-500/30 text-indigo-300'
+              }`}
+            >
+              {myAssignedTasksCount}
+            </span>
+          </button>
+
+          {/* Assignee Filter Dropdown */}
+          <select
+            value={assigneeFilter}
+            onChange={(e) => {
+              setAssigneeFilter(e.target.value);
+              if (e.target.value === 'ALL') {
+                searchParams.delete('assignee');
+              } else if (e.target.value === 'ME') {
+                searchParams.set('assignee', 'me');
+              } else {
+                searchParams.set('assignee', e.target.value);
+              }
+              setSearchParams(searchParams);
+            }}
+            className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 cursor-pointer max-w-[170px] truncate"
+          >
+            <option value="ALL">All Assignees</option>
+            <option value="ME">👤 Assigned to Me ({myAssignedTasksCount})</option>
+            <option value="UNASSIGNED">Unassigned</option>
+            {clientMembers.map((m) => {
+              const memberUserId = m.userId || m.user?.id;
+              const name = m.user ? `${m.user.firstName || ''} ${m.user.lastName || ''}`.trim() : 'Member';
+              return (
+                <option key={m.id || memberUserId} value={memberUserId}>
+                  {name} {memberUserId === user?.id ? '(You)' : ''}
+                </option>
+              );
+            })}
+          </select>
+
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
@@ -499,6 +581,37 @@ export const TasksPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Active Assignee Filter Indicator */}
+      {assigneeFilter !== 'ALL' && (
+        <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs">
+          <div className="flex items-center gap-2">
+            <UserCheck className="w-4 h-4 text-indigo-400" />
+            <span className="text-slate-300">Filtering by Assignee:</span>
+            <span className="font-bold text-white bg-indigo-600/30 px-2 py-0.5 rounded border border-indigo-500/30">
+              {assigneeFilter === 'ME'
+                ? `Assigned to You (${user?.firstName || 'Current User'})`
+                : assigneeFilter === 'UNASSIGNED'
+                ? 'Unassigned Tasks'
+                : clientMembers.find((m) => (m.userId || m.user?.id) === assigneeFilter)?.user?.firstName
+                ? `${clientMembers.find((m) => (m.userId || m.user?.id) === assigneeFilter)?.user?.firstName} ${clientMembers.find((m) => (m.userId || m.user?.id) === assigneeFilter)?.user?.lastName || ''}`.trim()
+                : 'Selected Member'}
+            </span>
+            <span className="text-slate-400 font-mono">({filteredTasks.length} deliverables)</span>
+          </div>
+
+          <button
+            onClick={() => {
+              setAssigneeFilter('ALL');
+              searchParams.delete('assignee');
+              setSearchParams(searchParams);
+            }}
+            className="flex items-center gap-1 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 px-2.5 py-1 rounded-lg transition-colors font-semibold"
+          >
+            <X className="w-3.5 h-3.5" /> Clear Filter
+          </button>
+        </div>
+      )}
 
       {/* Active Operational Filter Indicator */}
       {operationalFilter !== 'ALL' && (
@@ -565,104 +678,124 @@ export const TasksPage: React.FC = () => {
 
               {/* Tasks List */}
               <div className="space-y-3 flex-1 overflow-y-auto">
-                {colTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    onClick={() => openTaskDrawer(task)}
-                    className="group p-4 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/5 transition-all cursor-pointer relative"
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="text-[10px] font-mono font-bold text-indigo-400">
-                        TASK-{task.taskNumber}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        {task.status === 'CHANGES_REQUESTED' && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 bg-rose-950/80 border border-rose-500/40 text-rose-300 rounded">
-                            Changes Req.
-                          </span>
-                        )}
-                        <Badge
-                          variant={
-                            task.priority === 'URGENT'
-                              ? 'danger'
-                              : task.priority === 'HIGH'
-                              ? 'warning'
-                              : task.priority === 'MEDIUM'
-                              ? 'primary'
-                              : 'default'
-                          }
-                          size="sm"
-                        >
-                          {task.priority}
-                        </Badge>
-                      </div>
-                    </div>
+                {colTasks.map((task) => {
+                  const isAssignedToMe = Boolean(user?.id && (task.assigneeId === user.id || task.assignee?.id === user.id));
 
-                    <h4 className="text-xs font-semibold text-white leading-snug line-clamp-2 group-hover:text-indigo-200 transition-colors">
-                      {task.title}
-                    </h4>
-
-                    {task.description && (
-                      <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                        {task.description}
-                      </p>
-                    )}
-
-                    {task.engagement && (
-                      <div className="flex items-center gap-1 mt-2.5 text-[10px] text-indigo-300/80 bg-indigo-950/40 px-2 py-0.5 rounded border border-indigo-500/20 max-w-fit truncate">
-                        <Briefcase className="w-3 h-3 text-indigo-400 shrink-0" />
-                        <span className="truncate">{task.engagement.title}</span>
-                      </div>
-                    )}
-
-                    {/* Task Footer */}
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400">
-                      <div className="flex items-center gap-2">
-                        {task.dueDate && (
-                          <div className="flex items-center gap-1 text-slate-400">
-                            <Calendar className="w-3 h-3" />
-                            <span>{formatDate(task.dueDate)}</span>
-                          </div>
-                        )}
-                        {(task._count?.subtasks ?? 0) > 0 && (
-                          <div className="flex items-center gap-1 text-slate-400">
-                            <CheckSquare className="w-3 h-3" />
-                            <span>{task._count?.subtasks}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {task.assignee ? (
-                        <div
-                          className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center font-bold text-[10px] text-white"
-                          title={`${task.assignee.firstName || ''} ${task.assignee.lastName || ''}`}
-                        >
-                          {(task.assignee.firstName || 'U').charAt(0).toUpperCase()}
+                  return (
+                    <div
+                      key={task.id}
+                      onClick={() => openTaskDrawer(task)}
+                      className={`group p-4 rounded-xl border transition-all cursor-pointer relative ${
+                        isAssignedToMe
+                          ? 'bg-slate-900/95 border-indigo-500/60 ring-1 ring-indigo-500/40 shadow-md shadow-indigo-500/10'
+                          : 'bg-slate-900/90 border-slate-800 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/5'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <span className="text-[10px] font-mono font-bold text-indigo-400">
+                          TASK-{task.taskNumber}
+                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                          {isAssignedToMe && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-indigo-600/30 border border-indigo-400/40 text-indigo-300 rounded flex items-center gap-1">
+                              <UserCheck className="w-2.5 h-2.5" /> Assigned to You
+                            </span>
+                          )}
+                          {task.status === 'CHANGES_REQUESTED' && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-rose-950/80 border border-rose-500/40 text-rose-300 rounded">
+                              Changes Req.
+                            </span>
+                          )}
+                          <Badge
+                            variant={
+                              task.priority === 'URGENT'
+                                ? 'danger'
+                                : task.priority === 'HIGH'
+                                ? 'warning'
+                                : task.priority === 'MEDIUM'
+                                ? 'primary'
+                                : 'default'
+                            }
+                            size="sm"
+                          >
+                            {task.priority}
+                          </Badge>
                         </div>
-                      ) : (
-                        <UserIcon className="w-4 h-4 text-slate-600" />
+                      </div>
+
+                      <h4 className="text-xs font-semibold text-white leading-snug line-clamp-2 group-hover:text-indigo-200 transition-colors">
+                        {task.title}
+                      </h4>
+
+                      {task.description && (
+                        <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                          {task.description}
+                        </p>
+                      )}
+
+                      {task.engagement && (
+                        <div className="flex items-center gap-1 mt-2.5 text-[10px] text-indigo-300/80 bg-indigo-950/40 px-2 py-0.5 rounded border border-indigo-500/20 max-w-fit truncate">
+                          <Briefcase className="w-3 h-3 text-indigo-400 shrink-0" />
+                          <span className="truncate">{task.engagement.title}</span>
+                        </div>
+                      )}
+
+                      {/* Task Footer */}
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400">
+                        <div className="flex items-center gap-2">
+                          {task.dueDate && (
+                            <div className="flex items-center gap-1 text-slate-400">
+                              <Calendar className="w-3 h-3" />
+                              <span>{formatDate(task.dueDate)}</span>
+                            </div>
+                          )}
+                          {(task._count?.subtasks ?? 0) > 0 && (
+                            <div className="flex items-center gap-1 text-slate-400">
+                              <CheckSquare className="w-3 h-3" />
+                              <span>{task._count?.subtasks}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {task.assignee ? (
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] text-white ${
+                                isAssignedToMe
+                                  ? 'bg-indigo-600 ring-2 ring-indigo-400 shadow-sm shadow-indigo-500/50'
+                                  : 'bg-gradient-to-tr from-indigo-500 to-pink-500'
+                              }`}
+                              title={`${task.assignee.firstName || ''} ${task.assignee.lastName || ''} ${isAssignedToMe ? '(You)' : ''}`}
+                            >
+                              {(task.assignee.firstName || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            {isAssignedToMe && <span className="text-[10px] font-bold text-indigo-300">You</span>}
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-slate-500 italic">Unassigned</span>
+                        )}
+                      </div>
+
+                      {/* Quick Move Trigger Bar */}
+                      {getAvailableTransitions(task.status, isPrivileged).length > 0 && (
+                        <div className="hidden group-hover:flex items-center justify-end gap-1 mt-2 pt-2 border-t border-slate-800/60 flex-wrap">
+                          {getAvailableTransitions(task.status, isPrivileged).map((trans) => (
+                            <button
+                              key={trans.targetStatus}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStatusChange(task.id, trans.targetStatus);
+                              }}
+                              className="px-2 py-0.5 rounded text-[9px] font-semibold bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white transition-colors"
+                            >
+                              &rarr; {trans.label}
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
-
-                    {/* Quick Move Trigger Bar */}
-                    {getAvailableTransitions(task.status, isPrivileged).length > 0 && (
-                      <div className="hidden group-hover:flex items-center justify-end gap-1 mt-2 pt-2 border-t border-slate-800/60 flex-wrap">
-                        {getAvailableTransitions(task.status, isPrivileged).map((trans) => (
-                          <button
-                            key={trans.targetStatus}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStatusChange(task.id, trans.targetStatus);
-                            }}
-                            className="px-2 py-0.5 rounded text-[9px] font-semibold bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white transition-colors"
-                          >
-                            &rarr; {trans.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );

@@ -12,14 +12,14 @@ import {
   Flame,
   Award,
   ArrowRight,
-  Plus,
   GitBranch,
   Activity,
   Sparkles,
   Layers,
   History,
   Clock,
-  ExternalLink
+  ExternalLink,
+  UserCheck
 } from 'lucide-react';
 import { useClient } from '../context/ClientContext';
 import { useAuth } from '../context/AuthContext';
@@ -94,9 +94,9 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Link to="/tasks?create=true">
-            <Button variant="primary" leftIcon={<Plus className="w-4 h-4" />}>
-              Create Task
+          <Link to="/tasks?assignee=me">
+            <Button variant="primary" leftIcon={<UserCheck className="w-4 h-4" />}>
+              My Assigned Tasks
             </Button>
           </Link>
           <Link to="/engagements">
