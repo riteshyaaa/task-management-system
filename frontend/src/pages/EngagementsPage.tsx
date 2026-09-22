@@ -182,8 +182,8 @@ export const EngagementsPage: React.FC = () => {
           title: title.trim(),
           description: description.trim() || null,
           status,
-          periodStart: new Date(periodStart).toISOString(),
-          periodEnd: new Date(periodEnd).toISOString(),
+          periodStart: periodStart || undefined,
+          periodEnd: periodEnd || undefined,
           dueDate: dueDate ? new Date(dueDate).toISOString() : null,
           managerId: managerId || null
         });
@@ -195,20 +195,24 @@ export const EngagementsPage: React.FC = () => {
           title: title.trim(),
           description: description.trim() || null,
           status,
-          periodStart: new Date(periodStart).toISOString(),
-          periodEnd: new Date(periodEnd).toISOString(),
+          periodStart,
+          periodEnd,
           dueDate: dueDate ? new Date(dueDate).toISOString() : null,
           managerId: managerId || null,
-          templateId: templateId || undefined,
+          templateId: templateId || null,
           autoGenerateTasks,
-          assigneeId: assigneeId || undefined
+          assigneeId: assigneeId || null
         });
         showToast('Engagement created successfully with deliverables', 'success');
       }
       setIsModalOpen(false);
       loadData();
     } catch (err: any) {
-      const msg = err.response?.data?.error?.message || err.response?.data?.message || 'Failed to save engagement';
+      let msg = err.response?.data?.error?.message || err.response?.data?.message || 'Failed to save engagement';
+      if (err.response?.data?.error?.details && Array.isArray(err.response?.data?.error?.details)) {
+        const detailMsgs = err.response.data.error.details.map((d: any) => `${d.path}: ${d.message}`).join(', ');
+        if (detailMsgs) msg = `${msg} (${detailMsgs})`;
+      }
       showToast(msg, 'error');
     } finally {
       setSubmitting(false);
@@ -647,7 +651,7 @@ export const EngagementsPage: React.FC = () => {
               >
                 <option value="">Unassigned Manager</option>
                 {clientMembers.map((m) => (
-                  <option key={m.id} value={m.userId}>
+                  <option key={m.id} value={m.userId || m.user?.id}>
                     {m.user?.firstName} {m.user?.lastName} ({m.role})
                   </option>
                 ))}
@@ -689,6 +693,26 @@ export const EngagementsPage: React.FC = () => {
               </div>
             )}
           </div>
+
+          {!editingId && (
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5 block">
+                Assign Generated Tasks To (Optional)
+              </label>
+              <select
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:ring-2 focus:ring-indigo-500/50"
+              >
+                <option value="">Default to Engagement Manager</option>
+                {clientMembers.map((m) => (
+                  <option key={m.id} value={m.userId || m.user?.id}>
+                    {m.user?.firstName} {m.user?.lastName} ({m.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {!editingId && (
             <div className="p-3 bg-indigo-950/40 border border-indigo-500/20 rounded-xl space-y-2">
