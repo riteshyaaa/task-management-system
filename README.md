@@ -14,31 +14,12 @@ A full-stack, enterprise-grade Professional Services Engagement Management and W
 
 ## 🌟 Key Features
 
-### 1. Client Engagement & Deliverable Management
-- **Multi-Tenant Client Workspaces**: Complete data isolation across client workspaces (e.g., *Acme Corporation* and *TechStart Inc*).
-- **Engagement Lifecycles & Duplicate Prevention**: Track recurring and fixed-period client engagements with composite uniqueness checks preventing duplicate engagements across matching date ranges.
-- **Task & Deliverable Tracking**: Real-time status management, priority filters, label taxonomy, hierarchical subtasks, and comment threads.
-
-### 2. Standardized 4-State Workflow State Machine
-- **Strict Linear Review Workflow**: Enforces deliverable progression:
-  $$\text{NOT\_STARTED} \longrightarrow \text{IN\_PROGRESS} \longrightarrow \text{READY\_FOR\_REVIEW} \longrightarrow \text{COMPLETED}$$
-- **Role-Guarded Transitions**: Members progress tasks to review; deliverable sign-off and completion is strictly guarded to `ADMIN` and `MANAGER` roles.
-- **Anti-Self-Approval**: Prevents task assignees from approving their own deliverables.
-- **Transition History**: Append-only transition audit logs with reviewer feedback.
-
-### 3. Security, RBAC & Workspace Access
-- **Dual-Token Cryptographic Authentication**: Short-lived JWT access tokens paired with 7-day cryptographic refresh tokens stored in PostgreSQL.
-- **Refresh Token Rotation & Reuse Detection**: Immediate family-wide revocation if a compromised refresh token is replayed.
-- **Role-Based Permissions**: Role hierarchies (`ADMIN`, `MANAGER`, `MEMBER`) with restricted member management (admin only) and granular mutation gates.
-- **Optimistic Concurrency Control (OCC)**: Zero-data-loss protection using integer `version` columns to prevent race conditions during concurrent updates.
-
-### 4. Recurrence Engine & Background Scheduling
-- **Multi-Mode Recurrence Rules**: Daily intervals, weekly bitmask days (e.g., Mon/Fri), monthly day-of-month (with leap-year clamping), and 5-field Cron expressions.
-- **Idempotent Instance Generation**: Transaction-isolated background scheduler prevents duplicate task instantiation on re-runs.
-
-### 5. Audit Logging & Operational Analytics
-- **Append-Only JSONB Audit Trails**: Captures actor, IP address, pre/post mutation states (`oldValues` vs `newValues`), and changed fields.
-- **Engagement Operational Dashboard**: Real-time operational metrics (Open Tasks, Overdue, Due Today, Waiting for Client, Waiting for Review, Completed This Period, Active Engagements) alongside sprint velocity and member leaderboards.
+- **Multi-Tenant Client Workspaces**: Isolated client organizations with dedicated task, engagement, and team scoping.
+- **Standardized 4-State Review Workflow**: Linear progression (`NOT_STARTED` → `IN_PROGRESS` → `READY_FOR_REVIEW` → `COMPLETED`) with manager approval gates and anti-self-approval rules.
+- **Engagement & Deliverable Tracking**: Service types, recurring and fixed engagements, SLA milestones, and duplicate prevention.
+- **Role-Based Access Control (RBAC)**: Role hierarchies (`Admin`, `Manager`, `Member`), dual-token JWT authentication, and Optimistic Concurrency Control (OCC).
+- **Automated Recurrence Engine**: Scheduled task generation supporting daily, weekly, monthly, and cron-based intervals.
+- **Audit Logging & Analytics**: Append-only JSONB audit trails with field-level diffs, operational dashboard widgets, and member streak tracking.
 
 ---
 
