@@ -31,7 +31,28 @@ export function createApp(): Express {
   // 2. CORS Configuration
   app.use(
     cors({
-      origin: [ENV.CLIENT_URL, 'http://localhost:3000', 'http://localhost:5173'],
+      origin: (origin, callback) => {
+        // Allow requests with no origin (e.g. mobile apps, curl, server-to-server health checks)
+        if (!origin) return callback(null, true);
+
+        const allowedOrigins = [
+          ENV.CLIENT_URL,
+          'http://localhost:3000',
+          'http://localhost:5173',
+          'http://localhost:4173'
+        ].filter(Boolean);
+
+        const isAllowed =
+          allowedOrigins.includes(origin) ||
+          origin.endsWith('.vercel.app') ||
+          origin.endsWith('.onrender.com');
+
+        if (isAllowed) {
+          return callback(null, true);
+        }
+
+        return callback(new Error('CORS policy: Not allowed by Access-Control-Allow-Origin'));
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Id']
@@ -71,7 +92,22 @@ export function createApp(): Express {
     next();
   });
 
-  // 6. System Health Check Routes
+  // 6. System Health & Root Routes
+  app.get('/', (_req: Request, res: Response) => {
+    return res.status(200).json({
+      success: true,
+      service: 'Professional Services Engagement & Task Management API',
+      status: 'healthy',
+      version: '1.0.0',
+      documentation: '/api/v1/health',
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  app.head('/', (_req: Request, res: Response) => {
+    return res.status(200).end();
+  });
+
   app.get('/health', (_req: Request, res: Response) => {
     return sendSuccess(res, { status: 'healthy', uptime: process.uptime(), timestamp: new Date().toISOString() });
   });
