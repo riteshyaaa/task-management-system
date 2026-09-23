@@ -47,9 +47,38 @@
 
 ## 2. Database Schema & Entity Relationship Model
 
-<img width="1536" height="1024" alt="ERD_diagram" src="https://github.com/user-attachments/assets/c091a0e7-06b5-41c8-b13c-26a516145306" />
+![Database Schema & ERD Diagram](./docs/ERD_diagram.png)
 
-
+```
+ ┌──────────────┐         ┌──────────────┐         ┌──────────────┐
+ │     User     │1       *│   UserRole   │*       1│     Role     │
+ │ (Auth/Status)├─────────┤ (Assign Map) ├─────────┤(ADMIN/MEMBER)│
+ └──────┬───────┘         └──────────────┘         └──────┬───────┘
+        │1                                                │1
+        │*                                                │*
+ ┌──────▼───────┐         ┌──────────────┐         ┌──────▼───────┐
+ │ RefreshToken │         │ ClientMember │*       1│PermissionGate│
+ │ (SHA-256 Hsh)│         │ (ADMIN/MEMBR)├─────────┤ (Granular)   │
+ └──────────────┘         └──────▲───────┘         └──────────────┘
+                                 │*
+                                 │1
+ ┌──────────────┐         ┌──────┴───────┐         ┌──────────────┐
+ │    Client    │1       *│     Task     │1       *│   Subtask    │
+ │ (Workspace)  ├─────────┤(OCC Version, ├─────────┤ (Checklist)  │
+ └──────┬───────┘         │ Priority/St) │         └──────────────┘
+        │1                └──────┬───────┘
+        │*                       │1
+ ┌──────▼───────┐                │*
+ │  Engagement  │         ┌──────▼───────┐         ┌──────────────┐
+ │(Comp. Unique)│         │   AuditLog   │         │ TaskHistory  │
+ └──────┬───────┘         │(JSONB Diffs) │         │ (Transitions)│
+        │1                └──────────────┘         └──────────────┘
+        │*
+ ┌──────▼───────┐         ┌──────────────┐         ┌──────────────┐
+ │  WorkflowDef │1       *│ WorkflowState│1       *│WorkflowTrans │
+ │(4-State DAG) ├─────────┤(Init/Termnl) ├─────────┤(Role Guards) │
+ └──────────────┘         └──────────────┘         └──────────────┘
+```
 
 ### Core Entities
 
