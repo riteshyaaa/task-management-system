@@ -8,7 +8,7 @@
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC.svg)](https://tailwindcss.com/)
 [![Tests](https://img.shields.io/badge/Tests-82%20Passing-brightgreen.svg)](https://jestjs.io/)
 
-A full-stack, enterprise-grade Professional Services Engagement Management and Workflow Automation Platform. Built with strict TypeScript typing across the stack, dual-token cryptographic authentication, Role-Based Access Control (RBAC), multi-tenant client workspace isolation, a Directed Acyclic Graph (DAG) 4-state workflow engine, multi-mode recurrence scheduling, optimistic concurrency control, append-only audit logging, and operational analytics.
+A full-stack platform for managing client engagements, task deliverables, and structured review workflows with role-based permissions, automated recurrence, and audit logging.
 
 ---
 
