@@ -71,28 +71,35 @@ task_management/
    ```
 
 2. **Configure Environment Variables**:
-   Copy `.env.example` in `backend/`:
+   Copy `.env.example` to `.env` in `backend/`:
    ```bash
    cp backend/.env.example backend/.env
    ```
-   *Verify `backend/.env` settings*:
+   *Set your `DATABASE_URL` in `backend/.env`*:
+   > **Note on Database**: You can use your own **local PostgreSQL instance** (e.g., `postgresql://postgres:password@localhost:5432/task_management?schema=public`) or create a **free cloud PostgreSQL database** on [Neon](https://neon.tech) and paste the connection string.
+
    ```env
    NODE_ENV=development
    PORT=5000
-   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/task_mgmt_dev?schema=public"
+   
+   # Option A: Local PostgreSQL
+   DATABASE_URL="postgresql://postgres:your_password@localhost:5432/task_management?schema=public"
+   
+   # Option B: Neon Cloud PostgreSQL (https://neon.tech)
+   # DATABASE_URL="postgresql://<user>:<password>@<ep-pooler-host>.neon.tech/neondb?sslmode=require"
+
    JWT_ACCESS_SECRET="your_32_character_super_secure_access_secret_key!"
    JWT_REFRESH_SECRET="your_32_character_super_secure_refresh_secret_key!"
    JWT_ACCESS_EXPIRES_IN="15m"
    JWT_REFRESH_EXPIRES_IN="7d"
-   CORS_ORIGIN="http://localhost:5173,http://localhost:3000"
-   ENABLE_SCHEDULER="true"
+   CLIENT_URL="http://localhost:5173"
    ```
 
 3. **Initialize Database & Seed Test Fixtures**:
    ```bash
    npm run setup
    ```
-   *Generates Prisma Client, pushes schema migrations, and seeds roles, client workspaces, engagements, workflows, tasks, and recurring rules.*
+   *Generates Prisma Client, pushes schema to your database, and seeds demo roles, client workspaces, engagements, workflows, and tasks.*
 
 4. **Start Development Servers**:
    ```bash
