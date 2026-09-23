@@ -160,7 +160,9 @@ Cron Poller (Every 60s) ──> Query Due Rules (nextOccurrence <= NOW()) ──
 
 The workflow uses a 4-state progression designed for structured quality checks:
 
-$$\text{NOT\_STARTED} \longrightarrow \text{IN\_PROGRESS} \longrightarrow \text{READY\_FOR\_REVIEW} \longrightarrow \text{COMPLETED}$$
+```
+NOT_STARTED ──> IN_PROGRESS ──> READY_FOR_REVIEW ──> COMPLETED
+```
 
 - **State Transition Rules**:
   - Tasks must follow allowed transitions defined in the workflow configuration. Direct skips (e.g., `NOT_STARTED` straight to `COMPLETED`) are rejected.
