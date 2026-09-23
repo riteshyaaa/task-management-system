@@ -47,50 +47,27 @@
 
 ## 2. Database Schema & Entity Relationship Model
 
-```
- ┌──────────────┐         ┌──────────────┐         ┌──────────────┐
- │     User     │1       *│   UserRole   │*       1│     Role     │
- │ (Auth/Status)├─────────┤ (Assign Map) ├─────────┤(ADMIN/MEMBER)│
- └──────┬───────┘         └──────────────┘         └──────┬───────┘
-        │1                                                │1
-        │*                                                │*
- ┌──────▼───────┐         ┌──────────────┐         ┌──────▼───────┐
- │ RefreshToken │         │ ClientMember │*       1│PermissionGate│
- │ (SHA-256 Hsh)│         │ (ADMIN/MEMBR)├─────────┤ (Granular)   │
- └──────────────┘         └──────▲───────┘         └──────────────┘
-                                 │*
-                                 │1
- ┌──────────────┐         ┌──────┴───────┐         ┌──────────────┐
- │    Client    │1       *│     Task     │1       *│   Subtask    │
- │ (Workspace)  ├─────────┤(OCC Version, ├─────────┤ (Checklist)  │
- └──────┬───────┘         │ Priority/St) │         └──────────────┘
-        │1                └──────┬───────┘
-        │*                       │1
- ┌──────▼───────┐                │*
- │  Engagement  │         ┌──────▼───────┐         ┌──────────────┐
- │(Comp. Unique)│         │   AuditLog   │         │ TaskHistory  │
- └──────┬───────┘         │(JSONB Diffs) │         │ (Transitions)│
-        │1                └──────────────┘         └──────────────┘
-        │*
- ┌──────▼───────┐         ┌──────────────┐         ┌──────────────┐
- │  WorkflowDef │1       *│ WorkflowState│1       *│WorkflowTrans │
- │(4-State DAG) ├─────────┤(Init/Termnl) ├─────────┤(Role Guards) │
- └──────────────┘         └──────────────┘         └──────────────┘
-```
+<img width="1536" height="1024" alt="ERD_diagram" src="https://github.com/user-attachments/assets/c091a0e7-06b5-41c8-b13c-26a516145306" />
+
+
 
 ### Core Entities
-- **Users & Auth**: `User`, `Role`, and `RefreshToken` manage user profiles, permissions, and active login sessions.
-- **Client Workspaces**: `Client` and `ClientMember` organize multi-tenant client workspaces and member roles.
-- **Engagements**: `ServiceType` and `Engagement` track client services, milestone deadlines, and assigned managers.
-- **Tasks & Subtasks**: `Task` tracks work status, priority, assignees, and version numbers for safe updates. `Subtask` handles checklist items.
-- **Workflows**: `WorkflowDefinition`, `WorkflowState`, and `WorkflowTransition` store the 4-state review pipeline and role gates.
-- **Recurrence**: `RecurrenceRule` defines schedule rules, while `RecurringTaskInstance` tracks created tasks to prevent duplicates.
-- **Audit Logs**: `AuditLog` saves before-and-after change history for full visibility.
+
+- **Users & Access Control**: `User`, `Role`, `UserRole`, and `Permission` manage users, roles, and server-side permissions. `RefreshToken` stores hashed refresh tokens for session management.
+- **Client Workspaces**: `Client` and `ClientMember` provide workspace-level organization and membership/role control.
+- **Services & Engagements**: `ServiceType` defines the type of professional service, while `Engagement` connects a client to a service, manager, status, and service period.
+- **Tasks & Subtasks**: `Task` stores work items, assignments, status, priority, deadlines, and engagement relationships. `Subtask` supports checklist-style work items.
+- **Workflows**: `WorkflowDefinition`, `WorkflowState`, and `WorkflowTransition` define configurable task state transitions and role-based review rules.
+- **Templates & Recurrence**: `TaskTemplate` and `TemplateItem` define reusable task structures. `RecurrenceRule` defines recurring schedules, while `RecurringTaskInstance` tracks each scheduled occurrence and its generated task.
+- **Audit & History**: `AuditLog` and workflow history records provide traceability for important changes and state transitions.
 
 ### Key Constraints & Indexes
-- **No Duplicate Engagements**: A unique constraint on `(clientId, serviceTypeId, periodStart, periodEnd)` prevents creating identical engagements for the same client and dates.
-- **Safe Concurrent Edits**: An integer `version` field on tasks increments with each save to prevent overwriting another user's changes.
-- **Fast Lookups**: Indexes on `(clientId, status, priority)` and `(assigneeId, status)` keep Kanban boards and task lists fast.
+
+- **No Duplicate Engagements**: A unique constraint on `(clientId, serviceTypeId, periodStart, periodEnd)` prevents duplicate engagements for the same client, service, and period.
+- **Safe Concurrent Edits**: `Task.version` supports optimistic concurrency control so conflicting updates can be detected instead of silently overwriting changes.
+- **Unique Workspace Membership**: `(clientId, userId)` is unique in `ClientMember`, preventing the same user from being added to a client workspace more than once.
+- **Fast Task Queries**: Indexes on `(clientId, status, position)`, `(assigneeId, status)`, `engagementId`, and `dueDate` support common task-board, assignment, engagement, and deadline queries.
+- **Referential Integrity**: Foreign-key relationships maintain consistency between clients, engagements, tasks, templates, recurrence rules, and workflow records.
 
 ---
 
