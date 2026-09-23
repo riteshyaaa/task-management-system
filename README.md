@@ -29,7 +29,7 @@ A full-stack, enterprise-grade Professional Services Engagement Management and W
 task_management/
 ├── backend/                        # Node.js + Express + TypeScript REST API
 │   ├── prisma/
-│   │   ├── schema.prisma           # 30 relational models with constraints & indexes
+│   │   ├── schema.prisma           # relational models with constraints & indexes
 │   │   └── seed.ts                 # Database seeder (Roles, Workspaces, Workflows, Fixtures)
 │   ├── src/
 │   │   ├── config/                 # Environment, Prisma client, Winston logger
