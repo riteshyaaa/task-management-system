@@ -23,7 +23,12 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('[SEED] Starting comprehensive 2-Workspace Professional Services database seeding...');
+  console.log('[SEED] Starting comprehensive 5-Workspace Professional Services database seeding...');
+
+  // Common date helpers for consistent task/engagement timestamps across all workspaces
+  const futureDate = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+  const overdueDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+  const periodStart = new Date('2026-09-01T00:00:00Z');
 
   // 1. Clean existing records in reverse dependency order
   console.log('[SEED] Cleaning existing records...');
@@ -379,40 +384,164 @@ async function main() {
   // 6. Create Service Catalog Offerings (Global / Shared)
   console.log('[SEED] Creating 4 Professional Service Types...');
   const stBookkeeping = await prisma.serviceType.create({
-    data: {
-      name: 'Monthly Bookkeeping',
-      description: 'Comprehensive monthly bookkeeping, general ledger reconciliations, and expense tracking.',
-      defaultCadence: RecurrenceFrequency.MONTHLY,
-      estimatedHours: 12.0
-    }
+    data: { name: 'Monthly Bookkeeping', description: 'Comprehensive monthly bookkeeping.', defaultCadence: RecurrenceFrequency.MONTHLY, estimatedHours: 12.0 }
   });
-
   const stPayroll = await prisma.serviceType.create({
-    data: {
-      name: 'Bi-Weekly Payroll Processing',
-      description: 'Bi-weekly payroll calculations, timesheet approvals, tax withholdings, and direct deposit ACH preparation.',
-      defaultCadence: RecurrenceFrequency.WEEKLY,
-      estimatedHours: 6.0
-    }
+    data: { name: 'Bi-Weekly Payroll Processing', description: 'Bi-weekly payroll calculations.', defaultCadence: RecurrenceFrequency.WEEKLY, estimatedHours: 6.0 }
   });
-
   const stTaxCompliance = await prisma.serviceType.create({
-    data: {
-      name: 'Quarterly Tax Compliance',
-      description: 'Quarterly state and federal estimated tax aggregation, documentation review, and compliance filing.',
-      defaultCadence: RecurrenceFrequency.MONTHLY,
-      estimatedHours: 15.0
-    }
+    data: { name: 'Quarterly Tax Compliance', description: 'Quarterly state and federal tax aggregation.', defaultCadence: RecurrenceFrequency.MONTHLY, estimatedHours: 15.0 }
+  });
+  const stAuditAdvisory = await prisma.serviceType.create({
+    data: { name: 'Financial Audit & SOC2 Advisory', description: 'Annual audit and SOC2 compliance.', defaultCadence: RecurrenceFrequency.YEARLY, estimatedHours: 40.0 }
   });
 
-  const stAuditAdvisory = await prisma.serviceType.create({
-    data: {
-      name: 'Financial Audit & SOC2 Advisory',
-      description: 'Annual internal controls audit, financial risk assessment, and compliance readiness review.',
-      defaultCadence: RecurrenceFrequency.YEARLY,
-      estimatedHours: 40.0
-    }
+  // Additional service types for new clients
+  const stVATConsulting = await prisma.serviceType.create({
+    data: { name: 'VAT Consulting & Compliance', description: 'VAT registration, filing and advisory services.', defaultCadence: RecurrenceFrequency.MONTHLY, estimatedHours: 10.0 }
   });
+  const stPayrollTaxFiling = await prisma.serviceType.create({
+    data: { name: 'Payroll Tax Filing', description: 'Employer tax filings and W-2/1099 preparation.', defaultCadence: RecurrenceFrequency.YEARLY, estimatedHours: 20.0 }
+  });
+  const stCashFlowManagement = await prisma.serviceType.create({
+    data: { name: 'Cash Flow Management', description: 'Cash forecasting, treasury and liquidity management.', defaultCadence: RecurrenceFrequency.WEEKLY, estimatedHours: 8.0 }
+  });
+
+  // ===== DATA FOR CLIENT 3: Global Finance Ltd =====
+  console.log('[SEED] Creating data for Client 3: Global Finance Ltd...');
+  const stGFVAT = await prisma.serviceType.create({
+    data: { name: 'VAT Compliance Quarterly', description: 'Quarterly VAT compliance for Global Finance.', defaultCadence: RecurrenceFrequency.MONTHLY, estimatedHours: 10.0 }
+  });
+
+  const engagementGF1 = await prisma.engagement.create({
+    data: { clientId: client3.id, serviceTypeId: stGFVAT.id, title: 'Global Finance - Q3 2026 VAT Compliance', description: 'Quarterly VAT filing and compliance review.', status: EngagementStatus.ACTIVE, periodStart: new Date('2026-07-01T00:00:00Z'), periodEnd: new Date('2026-09-30T23:59:59Z'), dueDate: new Date('2026-10-15T00:00:00Z'), managerId: manager1.id, createdById: manager1.id }
+  });
+  const engagementGF2 = await prisma.engagement.create({
+    data: { clientId: client3.id, serviceTypeId: stPayrollTaxFiling.id, title: 'Global Finance - 2026 Payroll Tax Filing', description: 'Annual employer tax filing and W-2 preparation.', status: EngagementStatus.ACTIVE, periodStart: new Date('2026-01-01T00:00:00Z'), periodEnd: new Date('2026-12-31T23:59:59Z'), dueDate: new Date('2026-11-30T00:00:00Z'), managerId: manager1.id, createdById: manager1.id }
+  });
+
+  const labelGF1 = await prisma.label.create({ data: { clientId: client3.id, name: 'Urgent', color: '#EF4444', description: 'Immediate priority' } });
+  const labelGF2 = await prisma.label.create({ data: { clientId: client3.id, name: 'Tax', color: '#06B6D4', description: 'Tax compliance tasks' } });
+  const labelGF3 = await prisma.label.create({ data: { clientId: client3.id, name: 'Finance', color: '#8B5CF6', description: 'Financial tasks' } });
+
+  const wfGF = await prisma.workflowDefinition.create({
+    data: { name: 'Global Finance Workflow', description: 'Standard 4-state review workflow', status: WorkflowStatus.ACTIVE, version: 1, clientId: client3.id, createdById: manager1.id }
+  });
+  const stGFN = await prisma.workflowState.create({ data: { workflowId: wfGF.id, name: 'NOT_STARTED', slug: 'not_started', color: '#64748B', isInitial: true, position: 0 } });
+  const stGFI = await prisma.workflowState.create({ data: { workflowId: wfGF.id, name: 'IN_PROGRESS', slug: 'in_progress', color: '#3B82F6', position: 1 } });
+  const stGFR = await prisma.workflowState.create({ data: { workflowId: wfGF.id, name: 'READY_FOR_REVIEW', slug: 'ready_for_review', color: '#F59E0B', position: 2 } });
+  const stGFC = await prisma.workflowState.create({ data: { workflowId: wfGF.id, name: 'COMPLETED', slug: 'completed', color: '#10B981', isTerminal: true, position: 3 } });
+  await prisma.workflowDefinition.update({ where: { id: wfGF.id }, data: { initialStateId: stGFN.id } });
+  const wfGFTrans1 = await prisma.workflowTransition.create({ data: { workflowId: wfGF.id, fromStateId: stGFN.id, toStateId: stGFI.id, name: 'Start Work' } });
+  const wfGFTrans2 = await prisma.workflowTransition.create({ data: { workflowId: wfGF.id, fromStateId: stGFI.id, toStateId: stGFR.id, name: 'Submit for Review' } });
+  const wfGFTrans3 = await prisma.workflowTransition.create({ data: { workflowId: wfGF.id, fromStateId: stGFR.id, toStateId: stGFC.id, name: 'Approve Deliverable', conditions: { create: { conditionType: TransitionConditionType.ROLE_CHECK, config: { allowedRoles: ['ADMIN', 'MANAGER'] }, errorMessage: 'Only Managers and Admins can approve deliverables.' } } } });
+  const wfGFTrans4 = await prisma.workflowTransition.create({ data: { workflowId: wfGF.id, fromStateId: stGFR.id, toStateId: stGFI.id, name: 'Request Changes' } });
+
+  // Tasks for Global Finance
+  const taskGF1 = await prisma.task.create({ data: { title: 'Global Finance - VAT Return Preparation Q3', description: 'Prepare and file VAT returns for EU operations.', status: TaskStatus.IN_PROGRESS, priority: TaskPriority.HIGH, clientId: client3.id, engagementId: engagementGF1.id, reporterId: manager1.id, assigneeId: member2.id, estimatedHours: 8.0, actualHours: 4.5, dueDate: futureDate, position: 0, taskLabels: { create: [{ labelId: labelGF2.id }] }, workflowAssignment: { create: { workflowId: wfGF.id, currentStateId: stGFI.id } } } });
+  const taskGF2 = await prisma.task.create({ data: { title: 'Global Finance - Intrastat Reporting', description: 'Monthly Intrastat summary for cross-border transactions.', status: TaskStatus.READY_FOR_REVIEW, priority: TaskPriority.MEDIUM, clientId: client3.id, engagementId: engagementGF1.id, reporterId: manager1.id, assigneeId: member4.id, estimatedHours: 3.0, actualHours: 3.0, dueDate: futureDate, position: 1, taskLabels: { create: [{ labelId: labelGF2.id }] }, workflowAssignment: { create: { workflowId: wfGF.id, currentStateId: stGFR.id } } } });
+  const taskGF3 = await prisma.task.create({ data: { title: 'Global Finance - Annual W-2 Compilation', description: 'Compile and verify all employee W-2 forms.', status: TaskStatus.NOT_STARTED, priority: TaskPriority.HIGH, clientId: client3.id, engagementId: engagementGF2.id, reporterId: manager1.id, assigneeId: member2.id, estimatedHours: 15.0, dueDate: futureDate, position: 2, taskLabels: { create: [{ labelId: labelGF3.id }] }, workflowAssignment: { create: { workflowId: wfGF.id, currentStateId: stGFN.id } } } });
+  const taskGF4 = await prisma.task.create({ data: { title: 'Global Finance - 1099 Contractor Verification', description: 'Verify all independent contractor 1099 thresholds.', status: TaskStatus.COMPLETED, priority: TaskPriority.MEDIUM, clientId: client3.id, engagementId: engagementGF2.id, reporterId: manager1.id, assigneeId: member4.id, estimatedHours: 5.0, actualHours: 4.8, completedAt: new Date(), position: 3, taskLabels: { create: [{ labelId: labelGF3.id }] }, workflowAssignment: { create: { workflowId: wfGF.id, currentStateId: stGFC.id } } } });
+  const taskGF5 = await prisma.task.create({ data: { title: 'Global Finance - Monthly Treasury Report', description: 'Cash position and treasury activities summary.', status: TaskStatus.WAITING_FOR_CLIENT, priority: TaskPriority.HIGH, clientId: client3.id, engagementId: engagementGF2.id, reporterId: manager1.id, assigneeId: member2.id, estimatedHours: 2.0, dueDate: futureDate, position: 4, taskLabels: { create: [{ labelId: labelGF1.id }] } } });
+  const taskGF6Overdue = await prisma.task.create({ data: { title: 'Global Finance - Q2 VAT Reconciliation', description: 'Reconcile Q2 VAT accounts with filing.', status: TaskStatus.IN_PROGRESS, priority: TaskPriority.HIGH, clientId: client3.id, engagementId: engagementGF1.id, reporterId: manager1.id, assigneeId: member4.id, estimatedHours: 4.0, actualHours: 1.0, dueDate: overdueDate, position: 5, taskLabels: { create: [{ labelId: labelGF2.id }, { labelId: labelGF1.id }] }, workflowAssignment: { create: { workflowId: wfGF.id, currentStateId: stGFI.id } } } });
+
+  // ===== DATA FOR CLIENT 4: HealthCare Partners =====
+  console.log('[SEED] Creating data for Client 4: HealthCare Partners...');
+  const engagementHC1 = await prisma.engagement.create({
+    data: { clientId: client4.id, serviceTypeId: stAuditAdvisory.id, title: 'HealthCare - HIPAA Compliance Audit', description: 'Annual HIPAA compliance and security audit.', status: EngagementStatus.ACTIVE, periodStart: new Date('2026-01-01T00:00:00Z'), periodEnd: new Date('2026-12-31T23:59:59Z'), dueDate: new Date('2026-11-30T00:00:00Z'), managerId: manager2.id, createdById: manager2.id }
+  });
+  const engagementHC2 = await prisma.engagement.create({
+    data: { clientId: client4.id, serviceTypeId: stTaxCompliance.id, title: 'HealthCare - Q3 Tax Compliance', description: 'Quarterly tax compliance for healthcare entity.', status: EngagementStatus.ACTIVE, periodStart: new Date('2026-07-01T00:00:00Z'), periodEnd: new Date('2026-09-30T23:59:59Z'), dueDate: new Date('2026-10-15T00:00:00Z'), managerId: manager2.id, createdById: manager2.id }
+  });
+
+  const labelHC1 = await prisma.label.create({ data: { clientId: client4.id, name: 'Urgent', color: '#EF4444', description: 'Immediate priority' } });
+  const labelHC2 = await prisma.label.create({ data: { clientId: client4.id, name: 'Compliance', color: '#06B6D4', description: 'Compliance tasks' } });
+  const labelHC3 = await prisma.label.create({ data: { clientId: client4.id, name: 'Healthcare', color: '#10B981', description: 'Healthcare tasks' } });
+
+  const wfHC = await prisma.workflowDefinition.create({
+    data: { name: 'Healthcare Workflow', description: 'Standard 4-state review workflow', status: WorkflowStatus.ACTIVE, version: 1, clientId: client4.id, createdById: manager2.id }
+  });
+  const stHCN = await prisma.workflowState.create({ data: { workflowId: wfHC.id, name: 'NOT_STARTED', slug: 'not_started', color: '#64748B', isInitial: true, position: 0 } });
+  const stHCI = await prisma.workflowState.create({ data: { workflowId: wfHC.id, name: 'IN_PROGRESS', slug: 'in_progress', color: '#3B82F6', position: 1 } });
+  const stHCR = await prisma.workflowState.create({ data: { workflowId: wfHC.id, name: 'READY_FOR_REVIEW', slug: 'ready_for_review', color: '#F59E0B', position: 2 } });
+  const stHCC = await prisma.workflowState.create({ data: { workflowId: wfHC.id, name: 'COMPLETED', slug: 'completed', color: '#10B981', isTerminal: true, position: 3 } });
+  await prisma.workflowDefinition.update({ where: { id: wfHC.id }, data: { initialStateId: stHCN.id } });
+  const wfHCTrans1 = await prisma.workflowTransition.create({ data: { workflowId: wfHC.id, fromStateId: stHCN.id, toStateId: stHCI.id, name: 'Start Work' } });
+  const wfHCTrans2 = await prisma.workflowTransition.create({ data: { workflowId: wfHC.id, fromStateId: stHCI.id, toStateId: stHCR.id, name: 'Submit for Review' } });
+  const wfHCTrans3 = await prisma.workflowTransition.create({ data: { workflowId: wfHC.id, fromStateId: stHCR.id, toStateId: stHCC.id, name: 'Approve Deliverable', conditions: { create: { conditionType: TransitionConditionType.ROLE_CHECK, config: { allowedRoles: ['ADMIN', 'MANAGER'] }, errorMessage: 'Only Managers and Admins can approve deliverables.' } } } });
+  const wfHCTrans4 = await prisma.workflowTransition.create({ data: { workflowId: wfHC.id, fromStateId: stHCR.id, toStateId: stHCI.id, name: 'Request Changes' } });
+
+  // Tasks for HealthCare
+  const taskHC1 = await prisma.task.create({ data: { title: 'HealthCare - HIPAA Risk Assessment', description: 'Assess HIPAA security risks across all departments.', status: TaskStatus.IN_PROGRESS, priority: TaskPriority.URGENT, clientId: client4.id, engagementId: engagementHC1.id, reporterId: manager2.id, assigneeId: member1.id, estimatedHours: 20.0, actualHours: 12.0, dueDate: futureDate, position: 0, taskLabels: { create: [{ labelId: labelHC2.id }, { labelId: labelHC1.id }] }, workflowAssignment: { create: { workflowId: wfHC.id, currentStateId: stHCI.id } } } });
+  const taskHC2 = await prisma.task.create({ data: { title: 'HealthCare - Business Associate Agreement Review', description: 'Review all BAA agreements with healthcare partners.', status: TaskStatus.READY_FOR_REVIEW, priority: TaskPriority.HIGH, clientId: client4.id, engagementId: engagementHC1.id, reporterId: manager2.id, assigneeId: member3.id, estimatedHours: 10.0, actualHours: 9.5, dueDate: futureDate, position: 1, taskLabels: { create: [{ labelId: labelHC2.id }] }, workflowAssignment: { create: { workflowId: wfHC.id, currentStateId: stHCR.id } } } });
+  const taskHC3 = await prisma.task.create({ data: { title: 'HealthCare - Q3 Tax Filing Preparation', description: 'Prepare quarterly tax filing documents.', status: TaskStatus.NOT_STARTED, priority: TaskPriority.MEDIUM, clientId: client4.id, engagementId: engagementHC2.id, reporterId: manager2.id, assigneeId: member1.id, estimatedHours: 8.0, dueDate: futureDate, position: 2, taskLabels: { create: [{ labelId: labelHC3.id }] }, workflowAssignment: { create: { workflowId: wfHC.id, currentStateId: stHCN.id } } } });
+  const taskHC4 = await prisma.task.create({ data: { title: 'HealthCare - Patient Data Encryption Audit', description: 'Audit encryption of patient data at rest and in transit.', status: TaskStatus.COMPLETED, priority: TaskPriority.HIGH, clientId: client4.id, engagementId: engagementHC1.id, reporterId: manager2.id, assigneeId: member1.id, estimatedHours: 15.0, actualHours: 14.0, completedAt: new Date(), position: 3, taskLabels: { create: [{ labelId: labelHC2.id }] }, workflowAssignment: { create: { workflowId: wfHC.id, currentStateId: stHCC.id } } } });
+  const taskHC5 = await prisma.task.create({ data: { title: 'HealthCare - Staff HIPAA Training Records', description: 'Verify all staff have completed HIPAA training.', status: TaskStatus.WAITING_FOR_CLIENT, priority: TaskPriority.MEDIUM, clientId: client4.id, engagementId: engagementHC2.id, reporterId: manager2.id, assigneeId: member3.id, estimatedHours: 3.0, dueDate: futureDate, position: 4, taskLabels: { create: [{ labelId: labelHC3.id }] } } });
+  const taskHC6Overdue = await prisma.task.create({ data: { title: 'HealthCare - Insurance Credentialing Follow-up', description: 'Follow up on overdue insurance credentialing applications.', status: TaskStatus.IN_PROGRESS, priority: TaskPriority.HIGH, clientId: client4.id, engagementId: engagementHC2.id, reporterId: manager2.id, assigneeId: member1.id, estimatedHours: 5.0, actualHours: 1.5, dueDate: overdueDate, position: 5, taskLabels: { create: [{ labelId: labelHC1.id }] }, workflowAssignment: { create: { workflowId: wfHC.id, currentStateId: stHCI.id } } } });
+
+  // ===== DATA FOR CLIENT 5: RetailChain Solutions =====
+  console.log('[SEED] Creating data for Client 5: RetailChain Solutions...');
+  const engagementRC1 = await prisma.engagement.create({
+    data: { clientId: client5.id, serviceTypeId: stBookkeeping.id, title: 'RetailChain - Monthly Store Financials', description: 'Monthly financial close for retail chain stores.', status: EngagementStatus.ACTIVE, periodStart: new Date('2026-09-01T00:00:00Z'), periodEnd: new Date('2026-09-30T23:59:59Z'), dueDate: new Date('2026-10-05T00:00:00Z'), managerId: manager1.id, createdById: manager1.id }
+  });
+  const engagementRC2 = await prisma.engagement.create({
+    data: { clientId: client5.id, serviceTypeId: stCashFlowManagement.id, title: 'RetailChain - Cash Flow Optimization', description: 'Cash flow forecasting and optimization.', status: EngagementStatus.ACTIVE, periodStart: new Date('2026-07-01T00:00:00Z'), periodEnd: new Date('2026-12-31T23:59:59Z'), dueDate: new Date('2026-12-15T00:00:00Z'), managerId: manager2.id, createdById: manager2.id }
+  });
+
+  const labelRC1 = await prisma.label.create({ data: { clientId: client5.id, name: 'Urgent', color: '#EF4444', description: 'Immediate priority' } });
+  const labelRC2 = await prisma.label.create({ data: { clientId: client5.id, name: 'Retail', color: '#F59E0B', description: 'Retail tasks' } });
+  const labelRC3 = await prisma.label.create({ data: { clientId: client5.id, name: 'Inventory', color: '#8B5CF6', description: 'Inventory tasks' } });
+
+  const wfRC = await prisma.workflowDefinition.create({
+    data: { name: 'RetailChain Workflow', description: 'Standard 4-state review workflow', status: WorkflowStatus.ACTIVE, version: 1, clientId: client5.id, createdById: manager1.id }
+  });
+  const stRCN = await prisma.workflowState.create({ data: { workflowId: wfRC.id, name: 'NOT_STARTED', slug: 'not_started', color: '#64748B', isInitial: true, position: 0 } });
+  const stRCI = await prisma.workflowState.create({ data: { workflowId: wfRC.id, name: 'IN_PROGRESS', slug: 'in_progress', color: '#3B82F6', position: 1 } });
+  const stRCR = await prisma.workflowState.create({ data: { workflowId: wfRC.id, name: 'READY_FOR_REVIEW', slug: 'ready_for_review', color: '#F59E0B', position: 2 } });
+  const stRCC = await prisma.workflowState.create({ data: { workflowId: wfRC.id, name: 'COMPLETED', slug: 'completed', color: '#10B981', isTerminal: true, position: 3 } });
+  await prisma.workflowDefinition.update({ where: { id: wfRC.id }, data: { initialStateId: stRCN.id } });
+  const wfRCTrans1 = await prisma.workflowTransition.create({ data: { workflowId: wfRC.id, fromStateId: stRCN.id, toStateId: stRCI.id, name: 'Start Work' } });
+  const wfRCTrans2 = await prisma.workflowTransition.create({ data: { workflowId: wfRC.id, fromStateId: stRCI.id, toStateId: stRCR.id, name: 'Submit for Review' } });
+  const wfRCTrans3 = await prisma.workflowTransition.create({ data: { workflowId: wfRC.id, fromStateId: stRCR.id, toStateId: stRCC.id, name: 'Approve Deliverable', conditions: { create: { conditionType: TransitionConditionType.ROLE_CHECK, config: { allowedRoles: ['ADMIN', 'MANAGER'] }, errorMessage: 'Only Managers and Admins can approve deliverables.' } } } });
+  const wfRCTrans4 = await prisma.workflowTransition.create({ data: { workflowId: wfRC.id, fromStateId: stRCR.id, toStateId: stRCI.id, name: 'Request Changes' } });
+
+  // Tasks for RetailChain
+  const taskRC1 = await prisma.task.create({ data: { title: 'RetailChain - September Store Reconciliation', description: 'Reconcile POS and inventory for all store locations.', status: TaskStatus.IN_PROGRESS, priority: TaskPriority.HIGH, clientId: client5.id, engagementId: engagementRC1.id, reporterId: manager1.id, assigneeId: member2.id, estimatedHours: 10.0, actualHours: 6.0, dueDate: futureDate, position: 0, taskLabels: { create: [{ labelId: labelRC2.id }] }, workflowAssignment: { create: { workflowId: wfRC.id, currentStateId: stRCI.id } } } });
+  const taskRC2 = await prisma.task.create({ data: { title: 'RetailChain - Vendor Payment Run', description: 'Process vendor payments for September cycle.', status: TaskStatus.READY_FOR_REVIEW, priority: TaskPriority.URGENT, clientId: client5.id, engagementId: engagementRC1.id, reporterId: manager1.id, assigneeId: member3.id, estimatedHours: 5.0, actualHours: 4.5, dueDate: futureDate, position: 1, taskLabels: { create: [{ labelId: labelRC1.id }] }, workflowAssignment: { create: { workflowId: wfRC.id, currentStateId: stRCR.id } } } });
+  const taskRC3 = await prisma.task.create({ data: { title: 'RetailChain - Holiday Season Cash Forecast', description: 'Forecast cash needs for Q4 holiday season.', status: TaskStatus.NOT_STARTED, priority: TaskPriority.HIGH, clientId: client5.id, engagementId: engagementRC2.id, reporterId: manager2.id, assigneeId: member2.id, estimatedHours: 8.0, dueDate: futureDate, position: 2, taskLabels: { create: [{ labelId: labelRC3.id }] }, workflowAssignment: { create: { workflowId: wfRC.id, currentStateId: stRCN.id } } } });
+  const taskRC4 = await prisma.task.create({ data: { title: 'RetailChain - Shrinkage Audit Report', description: 'Quarterly shrinkage audit and analysis.', status: TaskStatus.COMPLETED, priority: TaskPriority.MEDIUM, clientId: client5.id, engagementId: engagementRC1.id, reporterId: manager1.id, assigneeId: member3.id, estimatedHours: 6.0, actualHours: 5.5, completedAt: new Date(), position: 3, taskLabels: { create: [{ labelId: labelRC2.id }] }, workflowAssignment: { create: { workflowId: wfRC.id, currentStateId: stRCC.id } } } });
+  const taskRC5 = await prisma.task.create({ data: { title: 'RetailChain - Inventory Valuation Review', description: 'Review inventory valuation methods and reserves.', status: TaskStatus.WAITING_FOR_CLIENT, priority: TaskPriority.MEDIUM, clientId: client5.id, engagementId: engagementRC2.id, reporterId: manager2.id, assigneeId: member4.id, estimatedHours: 4.0, dueDate: futureDate, position: 4, taskLabels: { create: [{ labelId: labelRC3.id }] } } });
+  const taskRC6Overdue = await prisma.task.create({ data: { title: 'RetailChain - POS System Migration', description: 'Migrate legacy POS data to new system.', status: TaskStatus.IN_PROGRESS, priority: TaskPriority.HIGH, clientId: client5.id, engagementId: engagementRC2.id, reporterId: manager2.id, assigneeId: member2.id, estimatedHours: 12.0, actualHours: 2.0, dueDate: overdueDate, position: 5, taskLabels: { create: [{ labelId: labelRC1.id }, { labelId: labelRC3.id }] }, workflowAssignment: { create: { workflowId: wfRC.id, currentStateId: stRCI.id } } } });
+
+  // Comments for new clients
+  await prisma.taskComment.create({ data: { taskId: taskGF1.id, userId: manager1.id, content: 'Please verify the EU VAT rates are current.' } });
+  await prisma.taskComment.create({ data: { taskId: taskHC1.id, userId: manager2.id, content: 'Make sure to include all clinic locations in scope.' } });
+  await prisma.taskComment.create({ data: { taskId: taskRC2.id, userId: manager1.id, content: 'Vendor payment list needs final sign-off before processing.' } });
+
+  // Recurring rules for new clients
+  const recurrenceGF1 = await prisma.recurrenceRule.create({ data: { taskTemplateId: taskGF1.id, frequency: RecurrenceFrequency.MONTHLY, interval: 1, startDate: new Date('2026-09-01T00:00:00Z'), nextOccurrence: new Date('2026-10-01T00:00:00Z'), status: RecurrenceStatus.ACTIVE, createdById: manager1.id, monthlyConfig: { create: { dayOfMonth: 1 } }, instances: { create: [{ scheduledFor: new Date('2026-09-01T00:00:00Z'), status: InstanceStatus.GENERATED, generatedTaskId: taskGF1.id, generatedAt: new Date('2026-09-01T00:00:05Z') }, { scheduledFor: new Date('2026-10-01T00:00:00Z'), status: InstanceStatus.PENDING }] } } });
+  const recurrenceHC1 = await prisma.recurrenceRule.create({ data: { taskTemplateId: taskHC1.id, frequency: RecurrenceFrequency.YEARLY, interval: 1, startDate: new Date('2026-01-01T00:00:00Z'), nextOccurrence: new Date('2027-01-01T00:00:00Z'), status: RecurrenceStatus.ACTIVE, createdById: manager2.id, instances: { create: [{ scheduledFor: new Date('2026-01-01T00:00:00Z'), status: InstanceStatus.GENERATED, generatedTaskId: taskHC1.id, generatedAt: new Date('2026-01-01T00:00:05Z') }, { scheduledFor: new Date('2027-01-01T00:00:00Z'), status: InstanceStatus.PENDING }] } } });
+  const recurrenceRC1 = await prisma.recurrenceRule.create({ data: { taskTemplateId: taskRC1.id, frequency: RecurrenceFrequency.MONTHLY, interval: 1, startDate: new Date('2026-09-01T00:00:00Z'), nextOccurrence: new Date('2026-10-01T00:00:00Z'), status: RecurrenceStatus.ACTIVE, createdById: manager1.id, monthlyConfig: { create: { dayOfMonth: 1 } }, instances: { create: [{ scheduledFor: new Date('2026-09-01T00:00:00Z'), status: InstanceStatus.GENERATED, generatedTaskId: taskRC1.id, generatedAt: new Date('2026-09-01T00:00:05Z') }, { scheduledFor: new Date('2026-10-01T00:00:00Z'), status: InstanceStatus.PENDING }] } } });
+
+  // Audit logs for new clients
+  await prisma.auditLog.create({ data: { entityType: 'Engagement', entityId: engagementGF1.id, operation: AuditOperation.CREATE, newValues: { title: 'Global Finance - Q3 2026 VAT Compliance', status: 'ACTIVE' }, changedFields: ['title', 'status', 'clientId'], performedById: manager1.id, ipAddress: '192.168.1.101', userAgent: 'Mozilla/5.0' } });
+  await prisma.auditLog.create({ data: { entityType: 'Engagement', entityId: engagementHC1.id, operation: AuditOperation.CREATE, newValues: { title: 'HealthCare - HIPAA Compliance Audit', status: 'ACTIVE' }, changedFields: ['title', 'status', 'clientId'], performedById: manager2.id, ipAddress: '192.168.1.102', userAgent: 'Mozilla/5.0' } });
+  await prisma.auditLog.create({ data: { entityType: 'Engagement', entityId: engagementRC1.id, operation: AuditOperation.CREATE, newValues: { title: 'RetailChain - Monthly Store Financials', status: 'ACTIVE' }, changedFields: ['title', 'status', 'clientId'], performedById: manager1.id, ipAddress: '192.168.1.103', userAgent: 'Mozilla/5.0' } });
+
+  // Velocity metrics for new clients
+  await prisma.taskVelocityMetric.create({ data: { clientId: client3.id, periodType: MetricPeriod.MONTHLY, periodStart, tasksCreated: 10, tasksCompleted: 7, tasksOverdue: 1, avgCycleTimeHrs: 20.0, p50CycleTimeHrs: 15.0, p90CycleTimeHrs: 35.0, throughputRate: 0.7 } });
+  await prisma.taskVelocityMetric.create({ data: { clientId: client4.id, periodType: MetricPeriod.MONTHLY, periodStart, tasksCreated: 8, tasksCompleted: 5, tasksOverdue: 1, avgCycleTimeHrs: 22.0, p50CycleTimeHrs: 16.0, p90CycleTimeHrs: 40.0, throughputRate: 0.625 } });
+  await prisma.taskVelocityMetric.create({ data: { clientId: client5.id, periodType: MetricPeriod.MONTHLY, periodStart, tasksCreated: 12, tasksCompleted: 8, tasksOverdue: 1, avgCycleTimeHrs: 18.0, p50CycleTimeHrs: 12.0, p90CycleTimeHrs: 30.0, throughputRate: 0.6667 } });
+
+  // Performance metrics for new clients
+  await prisma.clientPerformanceMetric.create({ data: { userId: member2.id, clientId: client3.id, periodType: MetricPeriod.MONTHLY, periodStart, tasksAssigned: 5, tasksCompleted: 3, tasksOverdue: 0, avgCompletionHrs: 10.5, onTimePercentage: 100.0, commentsPosted: 4, statusTransitions: 8 } });
+  await prisma.clientPerformanceMetric.create({ data: { userId: member1.id, clientId: client4.id, periodType: MetricPeriod.MONTHLY, periodStart, tasksAssigned: 4, tasksCompleted: 2, tasksOverdue: 1, avgCompletionHrs: 12.0, onTimePercentage: 75.0, commentsPosted: 3, statusTransitions: 6 } });
+  await prisma.clientPerformanceMetric.create({ data: { userId: member2.id, clientId: client5.id, periodType: MetricPeriod.MONTHLY, periodStart, tasksAssigned: 4, tasksCompleted: 2, tasksOverdue: 1, avgCompletionHrs: 9.5, onTimePercentage: 80.0, commentsPosted: 2, statusTransitions: 5 } });
+
+  // Notifications for new client users
+  await prisma.notification.create({ data: { userId: member2.id, type: NotificationType.TASK_UPDATED, title: 'Task Ready for Review', message: 'You have a task ready for review in Global Finance.' } });
+  await prisma.notification.create({ data: { userId: member1.id, type: NotificationType.TASK_UPDATED, title: 'Urgent Task Assigned', message: 'New urgent HIPAA task assigned in HealthCare Partners.' } });
+  await prisma.notification.create({ data: { userId: member2.id, type: NotificationType.TASK_UPDATED, title: 'Vendor Payment Review', message: 'Vendor payment run needs review in RetailChain Solutions.' } });
 
   // 7. Create Task Templates with Template Items & Variables for Both Workspaces
   console.log('[SEED] Creating Task Templates with structured items & variables for both workspaces...');
@@ -542,6 +671,97 @@ async function main() {
             description: 'Package evidence items and present to third-party auditors.',
             position: 2,
             estimatedHours: 10.0
+          }
+        ]
+      }
+    }
+  });
+
+  // Task Templates for Clients 3, 4, 5
+  const templateGFVAT = await prisma.taskTemplate.create({
+    data: {
+      name: 'Quarterly VAT Filing & Verification Checklist',
+      description: 'Standard operational template for international VAT compliance',
+      defaultTitle: '{{client_name}} - VAT Compliance ({{period_start}})',
+      defaultBody: 'Quarterly VAT return preparation and reconciliation for {{client_name}}.',
+      clientId: client3.id,
+      serviceTypeId: stGFVAT.id,
+      estimatedHours: 10.0,
+      defaultPriority: TaskPriority.HIGH,
+      createdById: manager1.id,
+      templateItems: {
+        create: [
+          {
+            title: '{{client_name}} - VAT Return Preparation & Cross-border Reconciliation',
+            description: 'Extract sales/purchase journals and calculate input/output VAT balances.',
+            position: 0,
+            estimatedHours: 6.0
+          },
+          {
+            title: '{{client_name}} - Tax Authority Portal Filing',
+            description: 'Submit electronic return to tax authorities and archive confirmation receipt.',
+            position: 1,
+            estimatedHours: 4.0
+          }
+        ]
+      }
+    }
+  });
+
+  const templateHCHIPAA = await prisma.taskTemplate.create({
+    data: {
+      name: 'HIPAA Security & Audit Assessment Template',
+      description: 'Standard security compliance and privacy audit checklist for healthcare clients',
+      defaultTitle: '{{client_name}} - HIPAA Compliance Audit ({{period_start}})',
+      defaultBody: 'Annual HIPAA and medical records security evaluation for {{client_name}}.',
+      clientId: client4.id,
+      serviceTypeId: stAuditAdvisory.id,
+      estimatedHours: 25.0,
+      defaultPriority: TaskPriority.URGENT,
+      createdById: manager2.id,
+      templateItems: {
+        create: [
+          {
+            title: '{{client_name}} - PHI Access Controls & IAM Verification',
+            description: 'Audit patient health information access logs and clinician permission boundaries.',
+            position: 0,
+            estimatedHours: 12.0
+          },
+          {
+            title: '{{client_name}} - Encryption & Business Associate Agreement Review',
+            description: 'Verify TLS/AES configuration and validate BAA compliance for third-party vendors.',
+            position: 1,
+            estimatedHours: 13.0
+          }
+        ]
+      }
+    }
+  });
+
+  const templateRCStore = await prisma.taskTemplate.create({
+    data: {
+      name: 'Monthly Retail Store Financials & POS Reconciliation',
+      description: 'Standard multi-location store inventory and cash drawer reconciliation workflow',
+      defaultTitle: '{{client_name}} - Store Financials ({{period_start}})',
+      defaultBody: 'Monthly multi-store retail financial reconciliation for {{client_name}}.',
+      clientId: client5.id,
+      serviceTypeId: stBookkeeping.id,
+      estimatedHours: 15.0,
+      defaultPriority: TaskPriority.HIGH,
+      createdById: manager1.id,
+      templateItems: {
+        create: [
+          {
+            title: '{{client_name}} - Multi-Store Cash & POS Reconciliation',
+            description: 'Match merchant gateway settlements with register closeout reports across all stores.',
+            position: 0,
+            estimatedHours: 8.0
+          },
+          {
+            title: '{{client_name}} - Inventory Shrinkage & Valuation Adjustments',
+            description: 'Record cycle count adjustments and physical inventory write-downs.',
+            position: 1,
+            estimatedHours: 7.0
           }
         ]
       }
@@ -776,8 +996,6 @@ async function main() {
 
   // 11. Create Rich Set of Tasks for Both Workspaces (covering all review statuses & edge cases)
   console.log('[SEED] Creating rich task fixtures across all review statuses...');
-  const futureDate = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
-  const overdueDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
   // --- ACME CORPORATION TASKS ---
   const taskAcme1 = await prisma.task.create({
@@ -1419,7 +1637,6 @@ async function main() {
 
   // 16. Create Velocity & Performance Metrics for Analytics Charts
   console.log('[SEED] Creating Analytics Metrics for Velocity & Performance charts...');
-  const periodStart = new Date('2026-09-01T00:00:00Z');
 
   // Acme Velocity Metric
   await prisma.taskVelocityMetric.create({
@@ -1545,10 +1762,13 @@ async function main() {
     await prisma.dashboardWidget.create({ data: w });
   }
 
-  console.log('[SEED] Comprehensive 2-Workspace Seeding completed successfully!');
+  console.log('[SEED] Comprehensive 5-Workspace Seeding completed successfully!');
   console.log('Workspaces:');
   console.log(' 1. Acme Corporation (slug: acme-corporation)');
   console.log(' 2. TechStart Inc (slug: techstart-inc)');
+  console.log(' 3. Global Finance Ltd (slug: global-finance-ltd)');
+  console.log(' 4. HealthCare Partners (slug: healthcare-partners)');
+  console.log(' 5. RetailChain Solutions (slug: retailchain-solutions)');
   console.log('Demo Logins:');
   console.log(' - Admin: admin@example.com / Password123!');
   console.log(' - Manager 1: manager@example.com / Password123!');
