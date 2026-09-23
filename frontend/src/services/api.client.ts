@@ -1,6 +1,11 @@
 ﻿import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD
+    ? 'https://task-mgmt-backend-6er6.onrender.com/api/v1'
+    : '/api/v1');
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
