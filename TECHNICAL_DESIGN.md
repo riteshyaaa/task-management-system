@@ -176,19 +176,16 @@ NOT_STARTED ──> IN_PROGRESS ──> READY_FOR_REVIEW ──> COMPLETED
 
 ## 7. Automated Test Coverage
 
-The test suite includes **82 tests** across 9 unit and integration test suites:
+The test suite includes **82 automated tests** across unit and integration test suites:
 
-| Test Suite | Type | Key Areas Tested |
+| Category | Type | Key Areas Tested |
 |---|---|---|
-| `tasks.api.test.ts` | Integration | Task CRUD, Kanban queries, optimistic concurrency conflicts, role guards |
-| `engagement-system.test.ts` | Integration | Engagement creation, composite uniqueness constraints, anti-self-approval |
-| `auth.api.test.ts` | Integration | Registration, login, token rotation, token family invalidation |
-| `health.api.test.ts` | Integration | Uptime checks, version endpoint, 404 handler |
-| `recurrence-calculator.test.ts` | Unit | Daily, weekly, monthly date math, leap year clamping, cron expressions |
-| `workflow-validator.test.ts` | Unit | Workflow graph validation, start/end states, cycle detection |
-| `workflow-engine.test.ts` | Unit | State transition logic, role requirement checks, subtask completion gates |
-| `streak-calculator.test.ts` | Unit | Daily streak calculation, same-day activity idempotency, streak resets |
-| `error-handler.test.ts` | Unit | Error formatting, validation errors, database constraint mapping |
+| **Authentication & Access Control** | Integration | User login, JWT access/refresh token rotation, role permissions, workspace isolation |
+| **Tasks & Concurrency** | Integration | Task CRUD, Kanban queries, optimistic concurrency conflicts (`version` checks) |
+| **Engagements & Clients** | Integration | Client workspaces, duplicate engagement prevention, anti-self-approval |
+| **Workflow State Machine** | Unit | Graph validation, 4-state review transitions, role approval gates |
+| **Recurrence Scheduler** | Unit | Daily, weekly, monthly schedule calculations, leap-year handling, duplicate prevention |
+| **System & Error Handling** | Unit / Integration | Service health checks, RFC 7807 error responses, input validation |
 
 ---
 
@@ -215,11 +212,17 @@ When scaling the application to handle higher volumes of tasks and concurrent us
 ## 9. Key Engineering Trade-offs
 
 1. **Optimistic Concurrency Control (OCC) vs. Database Row Locks**:
-   - *Choice*: Used OCC with an integer `version` field.
-   - *Reason*: Avoids holding locks open during client interactions or network latency, keeping database operations fast and preventing lock contention.
-2. **Database-Backed Workflow Rules vs. Hardcoded Status Enum**:
-   - *Choice*: Stored workflow states and transition rules in relational tables.
-   - *Reason*: Allows workflows and review policies to be configured per client without requiring code changes or service redeployment.
+   - **Choice**: Use a simple `version` number on task records instead of locking database rows.
+   - **Reason**: Avoids holding database locks open while a user is typing or on slow connections, keeping queries fast while safely catching and rejecting conflicting simultaneous edits.
+
+2. **Database-Driven Workflow Rules vs. Hardcoded Status Enums**:
+   - **Choice**: Store workflow states, transitions, and approval rules in database tables.
+   - **Reason**: Allows different client workspaces to configure custom review steps and role rules without requiring backend code changes or redeployments.
+
 3. **In-Process Scheduler vs. Heavy External Queue**:
-   - *Choice*: Implemented a clean, transaction-safe in-process poller for recurring schedules.
-   - *Reason*: Keeps development and deployment simple with zero extra infrastructure requirements, while isolating the logic cleanly so it can easily plug into an external message queue if needed.
+   - **Choice**: Run a clean, transaction-safe background interval worker for recurring tasks.
+   - **Reason**: Keeps local setup and single-server deployment simple with zero extra infrastructure (no extra Redis or queue servers needed), while organizing the logic modularly so it can easily move to a distributed queue when needed.
+
+4. **Dual-Token Authentication vs. Server-Side Session Storage**:
+   - **Choice**: Combine short-lived (15 min) JWT access tokens with long-lived (7 day) hashed refresh tokens stored in the database.
+   - **Reason**: Lets API routes verify user requests quickly without querying the database every time, while still keeping full control to revoke refresh tokens on logout or security events.
