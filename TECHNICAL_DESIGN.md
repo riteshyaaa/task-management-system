@@ -78,25 +78,19 @@
  └──────────────┘         └──────────────┘         └──────────────┘
 ```
 
-### Core Entities & Relationships
-- **Users & Auth**: `User` stores account profiles and authentication state. `Role` and `UserRole` assign global permissions. `RefreshToken` tracks active sessions with hashed tokens.
-- **Client Workspaces**: `Client` represents individual client accounts/workspaces. `ClientMember` associates users with clients and determines their workspace-level access.
-- **Engagements & Service Types**: `ServiceType` defines offerings per client. `Engagement` tracks active agreements, deliverables, target dates, and assigned managers.
-- **Tasks & Subtasks**: `Task` holds core task attributes (status, priority, due date, assignee, client association, and version number for optimistic concurrency). `Subtask` tracks smaller checklist items.
-- **Workflow State Machine**: `WorkflowDefinition` holds configured workflows. `WorkflowState`, `WorkflowTransition`, and `WorkflowCondition` define allowed status transitions, review requirements, and role gates.
-- **Recurrence Engine**: `RecurrenceRule`, `RecurrenceWeeklyDay`, and `RecurrenceMonthlyConfig` define schedule patterns. `RecurringTaskInstance` records each generated task instance to prevent duplicates.
-- **Audit Logging**: `AuditLog` captures user actions, storing previous and updated values in JSONB format for change tracking.
+### Core Entities
+- **Users & Auth**: `User`, `Role`, and `RefreshToken` manage user profiles, permissions, and active login sessions.
+- **Client Workspaces**: `Client` and `ClientMember` organize multi-tenant client workspaces and member roles.
+- **Engagements**: `ServiceType` and `Engagement` track client services, milestone deadlines, and assigned managers.
+- **Tasks & Subtasks**: `Task` tracks work status, priority, assignees, and version numbers for safe updates. `Subtask` handles checklist items.
+- **Workflows**: `WorkflowDefinition`, `WorkflowState`, and `WorkflowTransition` store the 4-state review pipeline and role gates.
+- **Recurrence**: `RecurrenceRule` defines schedule rules, while `RecurringTaskInstance` tracks created tasks to prevent duplicates.
+- **Audit Logs**: `AuditLog` saves before-and-after change history for full visibility.
 
-### Key Database Constraints & Indexes
-1. **Duplicate Engagement Prevention**:
-   `@@unique([clientId, serviceTypeId, periodStart, periodEnd])` ensures that identical client engagements for the same service type and date range cannot be created twice.
-2. **Optimistic Concurrency Control**:
-   `Task.version` is incremented on every update (`WHERE id = :id AND version = :version`) to safely detect and reject conflicting concurrent writes.
-3. **Targeted Indexes**:
-   - `Task`: Compound index on `[clientId, status, priority]` for board filtering and dashboard summaries.
-   - `Task`: Index on `[assigneeId, status]` for quick "My Tasks" queries.
-   - `RefreshToken`: Index on `[userId, expiresAt, isRevoked]` for fast token validation and cleanup.
-   - `AuditLog`: Index on `[clientId, entityType, entityId]` for activity history queries.
+### Key Constraints & Indexes
+- **No Duplicate Engagements**: A unique constraint on `(clientId, serviceTypeId, periodStart, periodEnd)` prevents creating identical engagements for the same client and dates.
+- **Safe Concurrent Edits**: An integer `version` field on tasks increments with each save to prevent overwriting another user's changes.
+- **Fast Lookups**: Indexes on `(clientId, status, priority)` and `(assigneeId, status)` keep Kanban boards and task lists fast.
 
 ---
 
