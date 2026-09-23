@@ -78,146 +78,146 @@
  └──────────────┘         └──────────────┘         └──────────────┘
 ```
 
-### Main Entities & Foreign Key Relationships
-- **User & Authentication**: `User` (PK `id`), `Role`, `UserRole` (FK `userId`, `roleId`), `RefreshToken` (FK `userId`).
-- **Client Workspaces**: `Client` (PK `id`), `ClientMember` (FK `clientId`, `userId`).
-- **Service Types & Engagements**: `ServiceType` (FK `clientId`), `Engagement` (FK `clientId`, `serviceTypeId`, `managerId`).
-- **Tasks & Subtasks**: `Task` (FK `clientId`, `engagementId`, `reporterId`, `assigneeId`, `parentTaskId`), `Subtask` (FK `taskId`).
-- **Workflow State Machine**: `WorkflowDefinition` (FK `clientId`), `WorkflowState` (FK `workflowId`), `WorkflowTransition` (FK `workflowId`, `fromStateId`, `toStateId`), `WorkflowCondition` (FK `transitionId`), `WorkflowAssignment` (FK `taskId`, `workflowId`, `currentStateId`).
-- **Recurrence Engine**: `RecurrenceRule` (FK `taskTemplateId`), `RecurrenceWeeklyDay`, `RecurrenceMonthlyConfig`, `RecurringTaskInstance` (FK `ruleId`, `generatedTaskId`).
-- **Audit Logging**: `AuditLog` (FK `userId`, `clientId`, stores `oldValues`/`newValues` as JSONB).
+### Core Entities & Relationships
+- **Users & Auth**: `User` stores account profiles and authentication state. `Role` and `UserRole` assign global permissions. `RefreshToken` tracks active sessions with hashed tokens.
+- **Client Workspaces**: `Client` represents individual client accounts/workspaces. `ClientMember` associates users with clients and determines their workspace-level access.
+- **Engagements & Service Types**: `ServiceType` defines offerings per client. `Engagement` tracks active agreements, deliverables, target dates, and assigned managers.
+- **Tasks & Subtasks**: `Task` holds core task attributes (status, priority, due date, assignee, client association, and version number for optimistic concurrency). `Subtask` tracks smaller checklist items.
+- **Workflow State Machine**: `WorkflowDefinition` holds configured workflows. `WorkflowState`, `WorkflowTransition`, and `WorkflowCondition` define allowed status transitions, review requirements, and role gates.
+- **Recurrence Engine**: `RecurrenceRule`, `RecurrenceWeeklyDay`, and `RecurrenceMonthlyConfig` define schedule patterns. `RecurringTaskInstance` records each generated task instance to prevent duplicates.
+- **Audit Logging**: `AuditLog` captures user actions, storing previous and updated values in JSONB format for change tracking.
 
-### Critical Constraints & Indexes
-1. **Engagement Composite Uniqueness**:
-   `@@unique([clientId, serviceTypeId, periodStart, periodEnd])` prevents duplicate client engagements across matching date ranges.
+### Key Database Constraints & Indexes
+1. **Duplicate Engagement Prevention**:
+   `@@unique([clientId, serviceTypeId, periodStart, periodEnd])` ensures that identical client engagements for the same service type and date range cannot be created twice.
 2. **Optimistic Concurrency Control**:
-   `Task.version` integer column increments on every mutation (`WHERE id = :id AND version = :version`).
-3. **Compound B-Tree Indexes**:
-   - `Task`: `@@index([clientId, status, priority])` for sub-millisecond Kanban board queries.
-   - `Task`: `@@index([assigneeId, status])` for fast "Assigned to Me" filtering.
-   - `RefreshToken`: `@@index([userId, expiresAt, isRevoked])` for token validation pipelines.
-   - `AuditLog`: GIN index on `changedFields` JSONB for audit inspections.
+   `Task.version` is incremented on every update (`WHERE id = :id AND version = :version`) to safely detect and reject conflicting concurrent writes.
+3. **Targeted Indexes**:
+   - `Task`: Compound index on `[clientId, status, priority]` for board filtering and dashboard summaries.
+   - `Task`: Index on `[assigneeId, status]` for quick "My Tasks" queries.
+   - `RefreshToken`: Index on `[userId, expiresAt, isRevoked]` for fast token validation and cleanup.
+   - `AuditLog`: Index on `[clientId, entityType, entityId]` for activity history queries.
 
 ---
 
-## 3. Backend Design & Architecture
+## 3. Backend Architecture & Request Flow
 
 ```
-HTTP Request ──> Express Route ──> Validate Middleware (Zod) ──> Controller ──> Domain Service ──> Prisma ORM ──> PostgreSQL
-                                                                                     │
-                                                                           AppError / Exception
-                                                                                     │
-                                                                                     ▼
-                                                                        Centralized Error Handler ──> RFC 7807 JSON Response
+HTTP Request ──> Route ──> Validation (Zod) ──> Controller ──> Service Layer ──> Prisma ORM ──> PostgreSQL
+                                                                     │
+                                                           Throws AppError
+                                                                     │
+                                                                     ▼
+                                                        Central Error Middleware ──> JSON Response
 ```
 
-- **API & Service Structure**: Strict separation of concerns following Domain-Driven Design (DDD). Controllers handle HTTP routing, parameter extraction, and status codes. Services encapsulate transactional business logic, entity orchestration, and audit recording.
-- **Validation Pipeline**: Request boundaries are protected by Zod schemas executed via `validate()` middleware. Inputs are sanitized, trimmed, and transformed (e.g., date formats, optional UUIDs, empty string normalization) before reaching controllers.
-- **Business Logic Placement**: Resides entirely in domain services (`EngagementService`, `TaskService`, `WorkflowEngine`, `RecurrenceService`, `AuthService`). Controllers and database models remain lean.
-- **Centralized Error Handling**: Intercepts custom `AppError` subclasses (`BadRequestError`, `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`) and translates Prisma exceptions (e.g., `P2002` uniqueness, `P2025` record not found) into structured RFC 7807 problem responses with correlation IDs.
+- **Layered Structure**:
+  - **Routes & Middleware**: Handle request routing, rate limiting, authentication checks, workspace authorization, and input validation.
+  - **Controllers**: Parse request params, pass data to services, and format HTTP responses.
+  - **Services**: Contain the core business rules, transactional logic, and audit logging.
+  - **Data Access**: Prisma ORM manages queries, relationships, migrations, and database connection pooling.
+- **Input Validation**: Request bodies and query parameters are validated using Zod schemas before hitting controllers. Invalid inputs return clear, structured 400 error messages.
+- **Error Handling**: Custom `AppError` classes (`BadRequestError`, `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`) are caught by a central error middleware, returning standard error payloads with meaningful messages.
 
 ---
 
-## 4. Authentication & Authorization (RBAC / ABAC)
+## 4. Authentication & Access Control
 
-- **Dual-Token Lifecycle**:
-  - **Access Token**: Stateless RS256/HS256 signed JWT (15-minute expiration) bearing `userId`, `email`, and system `roles`.
-  - **Refresh Token**: 7-day cryptographically random string hashed with SHA-256 in the database.
-  - **Reuse Detection**: Rotating a refresh token revokes the previous token and creates a new one in the same token family. If a revoked token is replayed, the entire token family is immediately revoked.
-- **Backend Role Enforcement**:
-  - **Global RBAC**: Express middleware `requireRole('ADMIN', 'MANAGER')` evaluates permissions attached to the verified JWT.
-  - **Workspace ABAC**: `abac-client.middleware.ts` inspects route parameters (`:clientId`), querying `ClientMember` to enforce tenant isolation so users only interact with data belonging to their authorized workspace.
-  - **Role Permissions**:
-    - `ADMIN`: Full global control, workspace member creation/invitation, template/task deletion, deliverable approval.
-    - `MANAGER`: Workspace management, engagement creation, deliverable review, approval, and task mutation.
-    - `MEMBER`: Task execution, progressing assigned tasks from `IN_PROGRESS` to `READY_FOR_REVIEW`. Blocked from creating members, deleting tasks, or approving deliverables.
+- **Token Management**:
+  - **Access Token**: Short-lived (15 minutes) JWT containing basic user info (`userId`, `email`, roles) for fast stateless verification.
+  - **Refresh Token**: Long-lived (7 days) random string stored securely in PostgreSQL as a SHA-256 hash.
+  - **Rotation**: Refreshing tokens issues a new access/refresh pair and revokes the old refresh token to prevent replay.
+- **Role Permissions**:
+  - **Admin**: Full access across all workspaces, user management, task deletion, and deliverable approvals.
+  - **Manager**: Manages client engagements, creates and assigns tasks, reviews deliverables, and approves transitions to `COMPLETED`.
+  - **Member**: Works on assigned tasks, updates progress, and submits items for review (`IN_PROGRESS` → `READY_FOR_REVIEW`). Cannot create members, delete tasks, or approve their own deliverables.
+- **Workspace Scoping**: The client middleware checks that the authenticated user belongs to the target workspace (`clientId`) before granting access to workspace data.
 
 ---
 
-## 5. Recurring Task Generation & Scheduling
+## 5. Recurring Task Engine
 
 ```
-Cron Poller (Every 60s) ──> Query Active Rules (nextOccurrence <= NOW()) ──> Prisma $transaction
-                                                                                    │
-                                                          ┌─────────────────────────┴─────────────────────────┐
-                                                          ▼                                                   ▼
-                                              Spawn Task from Template                           Advance nextOccurrence Date
-                                                          │                                                   │
-                                                          └─────────────────────────┬─────────────────────────┘
-                                                                                    ▼
-                                                                Create Generated Instance Log
+Cron Poller (Every 60s) ──> Query Due Rules (nextOccurrence <= NOW()) ──> Database Transaction
+                                                                                  │
+                                                        ┌─────────────────────────┴─────────────────────────┐
+                                                        ▼                                                   ▼
+                                            Create Task from Template                           Update nextOccurrence Date
+                                                        │                                                   │
+                                                        └─────────────────────────┬─────────────────────────┘
+                                                                                  ▼
+                                                                      Save Instance Record
 ```
 
-- **Generation Algorithm**: A background scheduler checks active `RecurrenceRule` records where `nextOccurrence <= NOW()`. `RecurrenceCalculator` computes exact target dates for Daily intervals, Weekly bitmask days, Monthly day-of-month (handling leap-year 28/29 day clamping), and 5-field Cron expressions.
-- **Duplicate Prevention**: Every generation creates a `RecurringTaskInstance` record linked to the rule and timestamp. Before spawning, the service checks for existing instances for that scheduled date.
-- **Idempotency on Re-Runs**: If the worker runs multiple times or overlaps, existence checks on `RecurringTaskInstance` and timestamp boundaries skip already-generated periods.
-- **Transactional Failure Recovery**: Task generation and recurrence advancement execute inside atomic Prisma interactive transactions (`prisma.$transaction`). If any step fails, all changes roll back completely, allowing safe retries on the next polling cycle.
+- **Schedule Processing**: A lightweight interval runner checks for active recurrence rules where `nextOccurrence <= NOW()`.
+- **Interval Calculations**: Supports Daily intervals, Weekly schedules (specific days of the week), Monthly dates (with end-of-month clamping), and standard 5-field Cron expressions.
+- **Duplicate Prevention**: Before creating a task, the engine checks `RecurringTaskInstance` for that rule and scheduled date, ensuring runs are idempotent.
+- **Transactional Safety**: Task creation and schedule date advancement run inside a database transaction (`prisma.$transaction`). If an error occurs, changes roll back cleanly and can retry on the next cycle.
 
 ---
 
-## 6. Workflow State Machine & Review Rules
+## 6. Review Workflow & State Machine
 
-The system implements a deterministic Directed Acyclic Graph (DAG) 4-state workflow:
+The workflow uses a 4-state progression designed for structured quality checks:
 
-$$\text{NOT\_STARTED} \xrightarrow{\text{Start Work}} \text{IN\_PROGRESS} \xrightarrow{\text{Submit for Review}} \text{READY\_FOR\_REVIEW} \xrightarrow[\text{Approve (Manager/Admin)}]{\text{Request Changes (Manager)}} \text{COMPLETED}$$
+$$\text{NOT\_STARTED} \longrightarrow \text{IN\_PROGRESS} \longrightarrow \text{READY\_FOR\_REVIEW} \longrightarrow \text{COMPLETED}$$
 
-- **Valid Transition Enforcement**:
-  - Transitions must follow edges explicitly registered in `WorkflowTransition`. Direct jumps from `NOT_STARTED` to `COMPLETED` are rejected with `400 Bad Request`.
-- **Manager Review Guards**:
-  - The `READY_FOR_REVIEW` $\rightarrow$ `COMPLETED` transition is protected by a `ROLE_CHECK` condition requiring `ADMIN` or `MANAGER` roles.
-  - **Anti-Self-Approval**: Assignees cannot approve their own deliverables (`assigneeId !== currentUserId`).
-- **Audit & History**: Every transition creates an immutable `WorkflowTransitionHistory` record capturing the prior state, target state, acting user, and reviewer comments.
+- **State Transition Rules**:
+  - Tasks must follow allowed transitions defined in the workflow configuration. Direct skips (e.g., `NOT_STARTED` straight to `COMPLETED`) are rejected.
+  - If review feedback requires revisions, managers can move a task back from `READY_FOR_REVIEW` to `IN_PROGRESS`.
+- **Review Guards**:
+  - Moving from `READY_FOR_REVIEW` to `COMPLETED` requires an `ADMIN` or `MANAGER` role.
+  - **Anti-Self-Approval**: Assignees cannot approve their own work (`assigneeId !== currentUserId`).
+- **Transition History**: Each state change is recorded with timestamps, acting user, and optional reviewer notes.
 
 ---
 
-## 7. Backend Test Suite
+## 7. Automated Test Coverage
 
-The backend contains **82 passing tests** across 9 automated test suites:
+The test suite includes **82 tests** across 9 unit and integration test suites:
 
-| Test Suite | Test Type | Coverage Areas |
+| Test Suite | Type | Key Areas Tested |
 |---|---|---|
-| `tasks.api.test.ts` | Integration | Task CRUD, Kanban queries, OCC version conflict handling, RBAC gates |
-| `engagement-system.test.ts` | Integration | Engagement creation, composite duplicate prevention, anti-self-approval |
-| `auth.api.test.ts` | Integration | Registration, login, token rotation, reuse detection, token family revocation |
-| `health.api.test.ts` | Integration | Service uptime, system versioning, unhandled route 404 responses |
-| `recurrence-calculator.test.ts` | Unit | Daily, weekly bitmask, leap-year month clamping, Nth-weekday, Cron |
-| `workflow-validator.test.ts` | Unit | DAG graph verification, initial/terminal state rules, cycle detection |
-| `workflow-engine.test.ts` | Unit | Transition evaluation, `ROLE_CHECK`, subtask completion guards |
-| `streak-calculator.test.ts` | Unit | Daily login streaks, same-day idempotency, inactivity resets |
-| `error-handler.test.ts` | Unit | RFC 7807 error formatting, Zod validation errors, Prisma constraint mapping |
+| `tasks.api.test.ts` | Integration | Task CRUD, Kanban queries, optimistic concurrency conflicts, role guards |
+| `engagement-system.test.ts` | Integration | Engagement creation, composite uniqueness constraints, anti-self-approval |
+| `auth.api.test.ts` | Integration | Registration, login, token rotation, token family invalidation |
+| `health.api.test.ts` | Integration | Uptime checks, version endpoint, 404 handler |
+| `recurrence-calculator.test.ts` | Unit | Daily, weekly, monthly date math, leap year clamping, cron expressions |
+| `workflow-validator.test.ts` | Unit | Workflow graph validation, start/end states, cycle detection |
+| `workflow-engine.test.ts` | Unit | State transition logic, role requirement checks, subtask completion gates |
+| `streak-calculator.test.ts` | Unit | Daily streak calculation, same-day activity idempotency, streak resets |
+| `error-handler.test.ts` | Unit | Error formatting, validation errors, database constraint mapping |
 
 ---
 
-## 8. Production Considerations at Scale (5 Million Tasks)
+## 8. Scalability & Operational Considerations
 
-1. **Database Indexing**:
-   - Add **partial indexes** on active tasks: `CREATE INDEX idx_tasks_active ON tasks (client_id, status) WHERE status != 'COMPLETED'`.
-   - Add **composite B-Tree indexes** on `(client_id, engagement_id, due_date)`.
-   - Utilize PostgreSQL **declarative table partitioning** by `client_id` (hash) or `created_at` (range by year/quarter) to keep index working sets in RAM.
-2. **Pagination**:
-   - Replace `OFFSET / LIMIT` with **keyset (cursor-based) pagination**:  
-     `WHERE client_id = :id AND (created_at, id) < (:cursorCreatedAt, :cursorId) ORDER BY created_at DESC, id DESC LIMIT 50`. Avoids $O(N)$ sequential table scans on deep offsets.
-3. **Background Jobs & Worker Fleet**:
-   - Decouple in-process `node-cron` into dedicated worker processes using **BullMQ with Redis** or **AWS SQS**.
-   - Implement **distributed lock leasing** (Redlock) to prevent duplicate execution across horizontal worker instances.
-   - Configure exponential backoff retry policies and Dead Letter Queues (DLQ) for failed task generation.
-4. **Dashboard Queries & Analytics**:
-   - Replace real-time aggregate table scans with **materialized views** refreshed concurrently (`REFRESH MATERIALIZED VIEW CONCURRENTLY`) or maintain real-time counter caches in **Redis** with write-through invalidation on task state changes.
-5. **Observability, Logging & Monitoring**:
-   - Route structured JSON logs to OpenTelemetry / Elasticsearch / Datadog.
-   - Implement Prometheus metrics exporting request duration histograms, active database connection pool usage, and scheduler queue lag.
-   - Inject W3C `traceparent` headers for distributed tracing across microservices.
+When scaling the application to handle higher volumes of tasks and concurrent users:
+
+1. **Database Indexing & Partitioning**:
+   - Maintain targeted compound indexes for active tasks by client and status.
+   - For very large datasets, range-partition historical tasks and audit logs by date (`created_at`) to keep active working tables compact.
+2. **Pagination Strategy**:
+   - Use cursor-based pagination (`WHERE (created_at, id) < (:cursorDate, :cursorId)`) on high-volume endpoints to ensure consistent query performance regardless of page depth.
+3. **Background Job Queue**:
+   - For multi-instance horizontal deployments, transition the in-process cron worker to a distributed queue like BullMQ (backed by Redis) with job locking and retries.
+4. **Caching & Aggregations**:
+   - Cache frequently read, rarely changed data (such as workflow definitions and client metadata) in Redis.
+   - Use materialized views or periodically computed summary tables for heavy dashboard reporting metrics.
+5. **Monitoring & Observability**:
+   - Standardize JSON application logs for log aggregators.
+   - Track key health metrics: API response times, database query durations, and connection pool utilization.
 
 ---
 
-## 9. Key Technical Trade-offs & Decisions
+## 9. Key Engineering Trade-offs
 
-1. **Optimistic Concurrency Control (OCC) vs. Pessimistic Row Locking**:
-   - *Decision*: Implemented OCC using integer `version` columns.
-   - *Rationale*: Avoids holding open database row locks during user think-time or network latency, maximizing database throughput and preventing deadlocks in high-concurrency environments.
-2. **Database-Driven DAG State Machine vs. Hardcoded Status Enum**:
-   - *Decision*: Built a configurable database-backed workflow graph with explicit transition rules and condition hooks.
-   - *Rationale*: Enables multi-tenant customization and complex review policies per client workspace without requiring application redeployment or code modifications.
-3. **Modular In-Process Scheduler vs. Heavy External Queue**:
-   - *Decision*: Packaged recurrence engine using transactional database isolation and modular interfaces.
-   - *Rationale*: Keeps local development and evaluation zero-dependency while maintaining strict atomicity, with clean service abstractions ready to swap into BullMQ/Redis for large-scale multi-node production deployment.
+1. **Optimistic Concurrency Control (OCC) vs. Database Row Locks**:
+   - *Choice*: Used OCC with an integer `version` field.
+   - *Reason*: Avoids holding locks open during client interactions or network latency, keeping database operations fast and preventing lock contention.
+2. **Database-Backed Workflow Rules vs. Hardcoded Status Enum**:
+   - *Choice*: Stored workflow states and transition rules in relational tables.
+   - *Reason*: Allows workflows and review policies to be configured per client without requiring code changes or service redeployment.
+3. **In-Process Scheduler vs. Heavy External Queue**:
+   - *Choice*: Implemented a clean, transaction-safe in-process poller for recurring schedules.
+   - *Reason*: Keeps development and deployment simple with zero extra infrastructure requirements, while isolating the logic cleanly so it can easily plug into an external message queue if needed.
