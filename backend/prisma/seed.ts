@@ -287,8 +287,8 @@ async function main() {
     }
   });
 
-  // 5. Create EXACTLY 2 Clients (Workspaces)
-  console.log('[SEED] Creating EXACTLY 2 Client Workspaces (Acme Corporation & TechStart Inc)...');
+  // 5. Create EXACTLY 5 Clients (Workspaces) - Meeting requirement: 5 clients
+  console.log('[SEED] Creating EXACTLY 5 Client Workspaces...');
   const client1 = await prisma.client.create({
     data: {
       name: 'Acme Corporation',
@@ -317,6 +317,58 @@ async function main() {
           { userId: manager2.id, role: ClientRole.MAINTAINER },
           { userId: manager1.id, role: ClientRole.MAINTAINER },
           { userId: member1.id, role: ClientRole.MEMBER },
+          { userId: member3.id, role: ClientRole.MEMBER },
+          { userId: member4.id, role: ClientRole.MEMBER }
+        ]
+      }
+    }
+  });
+
+  // Additional 3 Clients to meet 5-client requirement
+  const client3 = await prisma.client.create({
+    data: {
+      name: 'Global Finance Ltd',
+      slug: 'global-finance-ltd',
+      description: 'International financial services and banking client workspace',
+      members: {
+        create: [
+          { userId: adminUser.id, role: ClientRole.OWNER },
+          { userId: manager1.id, role: ClientRole.MAINTAINER },
+          { userId: member2.id, role: ClientRole.MEMBER },
+          { userId: member4.id, role: ClientRole.MEMBER }
+        ]
+      }
+    }
+  });
+
+  const client4 = await prisma.client.create({
+    data: {
+      name: 'HealthCare Partners',
+      slug: 'healthcare-partners',
+      description: 'Healthcare and medical compliance services client workspace',
+      members: {
+        create: [
+          { userId: adminUser.id, role: ClientRole.OWNER },
+          { userId: manager2.id, role: ClientRole.MAINTAINER },
+          { userId: member1.id, role: ClientRole.MEMBER },
+          { userId: member3.id, role: ClientRole.MEMBER }
+        ]
+      }
+    }
+  });
+
+  const client5 = await prisma.client.create({
+    data: {
+      name: 'RetailChain Solutions',
+      slug: 'retailchain-solutions',
+      description: 'Retail chain operations and supply chain management client workspace',
+      members: {
+        create: [
+          { userId: adminUser.id, role: ClientRole.OWNER },
+          { userId: manager1.id, role: ClientRole.MAINTAINER },
+          { userId: manager2.id, role: ClientRole.MAINTAINER },
+          { userId: member1.id, role: ClientRole.MEMBER },
+          { userId: member2.id, role: ClientRole.MEMBER },
           { userId: member3.id, role: ClientRole.MEMBER },
           { userId: member4.id, role: ClientRole.MEMBER }
         ]
